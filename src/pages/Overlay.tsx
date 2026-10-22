@@ -30,38 +30,38 @@ function getPlacementTheme(placement: number) {
   switch (placement) {
     case 1:
       return {
-        cardBorder: 'border-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.6)]',
+        cardBorder: 'border-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.6)]',
         cornerTrim: 'border-amber-300',
-        badge: 'text-amber-300 border-amber-400/80 bg-amber-950/80 shadow-[0_0_8px_rgba(251,191,36,0.45)]',
-        bar: 'bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-300 shadow-[0_0_8px_rgba(251,191,36,0.8)]',
+        badge: 'text-amber-300 border-amber-400/80 bg-amber-950/90 shadow-[0_0_6px_rgba(251,191,36,0.5)]',
+        bar: 'bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-300 shadow-[0_0_6px_rgba(251,191,36,0.8)]',
       };
     case 2:
       return {
-        cardBorder: 'border-slate-300 shadow-[0_0_10px_rgba(203,213,225,0.45)]',
+        cardBorder: 'border-slate-300 shadow-[0_0_6px_rgba(203,213,225,0.45)]',
         cornerTrim: 'border-slate-200',
-        badge: 'text-slate-200 border-slate-300/80 bg-slate-800/80 shadow-[0_0_6px_rgba(203,213,225,0.3)]',
-        bar: 'bg-gradient-to-r from-slate-400 via-slate-200 to-slate-400 shadow-[0_0_6px_rgba(226,232,240,0.7)]',
+        badge: 'text-slate-200 border-slate-300/80 bg-slate-800/90 shadow-[0_0_5px_rgba(203,213,225,0.3)]',
+        bar: 'bg-gradient-to-r from-slate-400 via-slate-200 to-slate-400 shadow-[0_0_5px_rgba(226,232,240,0.7)]',
       };
     case 3:
       return {
-        cardBorder: 'border-amber-700 shadow-[0_0_10px_rgba(180,83,9,0.45)]',
+        cardBorder: 'border-amber-700 shadow-[0_0_6px_rgba(180,83,9,0.45)]',
         cornerTrim: 'border-amber-600',
-        badge: 'text-amber-500 border-amber-700/80 bg-stone-900/80 shadow-[0_0_6px_rgba(180,83,9,0.3)]',
-        bar: 'bg-gradient-to-r from-amber-800 via-amber-600 to-amber-700 shadow-[0_0_6px_rgba(217,119,6,0.6)]',
+        badge: 'text-amber-400 border-amber-700/80 bg-stone-900/90 shadow-[0_0_5px_rgba(180,83,9,0.3)]',
+        bar: 'bg-gradient-to-r from-amber-800 via-amber-600 to-amber-700 shadow-[0_0_5px_rgba(217,119,6,0.6)]',
       };
     case 4:
       return {
-        cardBorder: 'border-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.45)]',
+        cardBorder: 'border-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.45)]',
         cornerTrim: 'border-emerald-300',
-        badge: 'text-emerald-300 border-emerald-500/80 bg-emerald-950/70 shadow-[0_0_6px_rgba(16,185,129,0.3)]',
-        bar: 'bg-gradient-to-r from-emerald-500 via-teal-400 to-green-400 shadow-[0_0_8px_rgba(16,185,129,0.8)]',
+        badge: 'text-emerald-300 border-emerald-500/80 bg-emerald-950/90 shadow-[0_0_6px_rgba(16,185,129,0.4)]',
+        bar: 'bg-gradient-to-r from-emerald-500 via-teal-400 to-green-400 shadow-[0_0_6px_rgba(16,185,129,0.8)]',
       };
     default:
       return {
-        cardBorder: 'border-rose-900/80 opacity-85',
+        cardBorder: 'border-rose-900/80 opacity-80',
         cornerTrim: 'border-rose-800',
-        badge: 'text-rose-300/80 border-rose-900/60 bg-rose-950/60',
-        bar: 'bg-gradient-to-r from-rose-800 via-rose-600 to-red-600 shadow-[0_0_6px_rgba(225,29,72,0.5)]',
+        badge: 'text-rose-300 border-rose-900/70 bg-rose-950/80',
+        bar: 'bg-gradient-to-r from-rose-800 via-rose-600 to-red-600 shadow-[0_0_5px_rgba(225,29,72,0.5)]',
       };
   }
 }
@@ -114,7 +114,6 @@ export default function Overlay() {
   });
 
   const loadMatches = async () => {
-    // Fetch all session matches without capping so win/loss count keeps growing indefinitely
     const { data: matchData } = await supabase
       .from('stream_matches')
       .select('*')
@@ -210,11 +209,8 @@ export default function Overlay() {
     };
   }, [streamerId]);
 
-  // Full session calculations (never capped)
   const top4Count = allSessionMatches.filter((m) => m.placement <= 4).length;
   const bottom4Count = allSessionMatches.length - top4Count;
-
-  // Strict cap to the latest 5 matches for display
   const displayAvatars = allSessionMatches.slice(0, 5);
 
   const widgets = profile.enabled_widgets || {};
@@ -226,16 +222,16 @@ export default function Overlay() {
     switch (key) {
       case 'sessionRecord':
         return (
-          <div key={key} className="relative z-10 flex flex-col items-center px-5 first:pl-0 border-l first:border-l-0 border-amber-500/25">
-            <div className="flex items-center gap-1.5">
-              <Swords className="w-4 h-4 text-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.8)]" />
-              <span className="text-[11px] tracking-widest text-amber-200 uppercase font-black drop-shadow">
+          <div key={key} className="relative z-10 flex flex-col items-center px-3.5 first:pl-0 border-l first:border-l-0 border-amber-500/20">
+            <div className="flex items-center gap-1">
+              <Swords className="w-3 h-3 text-amber-400 drop-shadow" />
+              <span className="text-[9px] tracking-wider text-amber-200/90 uppercase font-black">
                 RECORD
               </span>
             </div>
-            <div className="text-lg font-black tracking-wider mt-1 font-mono">
-              <span className="text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.8)]">{top4Count}W</span>
-              <span className="text-amber-500/40 mx-2 font-sans font-light">|</span>
+            <div className="text-sm font-black tracking-wider mt-0.5 font-mono">
+              <span className="text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.7)]">{top4Count}W</span>
+              <span className="text-amber-500/40 mx-1 font-sans font-light">|</span>
               <span className="text-rose-400 drop-shadow-[0_0_8px_rgba(244,63,94,0.6)]">{bottom4Count}L</span>
             </div>
           </div>
@@ -243,11 +239,11 @@ export default function Overlay() {
 
       case 'starDelta':
         return (
-          <div key={key} className="relative z-10 flex flex-col items-center px-5 first:pl-0 border-l first:border-l-0 border-amber-500/25">
-            <span className="text-[11px] tracking-widest text-amber-200 uppercase font-black drop-shadow flex items-center gap-1">
-              <Flame className="w-3.5 h-3.5 text-amber-400" /> SESSION ⭐
+          <div key={key} className="relative z-10 flex flex-col items-center px-3.5 first:pl-0 border-l first:border-l-0 border-amber-500/20">
+            <span className="text-[9px] tracking-wider text-amber-200/90 uppercase font-black flex items-center gap-1">
+              <Flame className="w-2.5 h-2.5 text-amber-400" /> SESSION ⭐
             </span>
-            <span className={`text-lg font-black font-mono mt-1 ${profile.star_delta >= 0 ? 'text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]' : 'text-rose-400'}`}>
+            <span className={`text-sm font-black font-mono mt-0.5 ${profile.star_delta >= 0 ? 'text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.7)]' : 'text-rose-400'}`}>
               {profile.star_delta > 0 ? `+${profile.star_delta}` : profile.star_delta} ⭐
             </span>
           </div>
@@ -255,24 +251,23 @@ export default function Overlay() {
 
       case 'currentRank':
         return (
-          <div key={key} className="relative z-10 flex items-center gap-3.5 px-5 first:pl-0 border-l first:border-l-0 border-amber-500/25">
-            <div className="relative w-10 h-10 flex items-center justify-center shrink-0">
-              <div className="absolute inset-0 bg-gradient-to-tr from-amber-600 via-yellow-400 to-amber-200 rotate-45 rounded-[3px] shadow-[0_0_14px_rgba(245,158,11,0.7)]" />
-              <div className="absolute inset-[2px] bg-gradient-to-b from-[#101d3f] to-[#060c1d] rotate-45 rounded-[2px]" />
-              <Sparkles className="relative z-10 w-4 h-4 text-amber-300 drop-shadow" />
+          <div key={key} className="relative z-10 flex items-center gap-2.5 px-3.5 first:pl-0 border-l first:border-l-0 border-amber-500/20">
+            <div className="relative w-7 h-7 flex items-center justify-center shrink-0">
+              <div className="absolute inset-0 bg-gradient-to-tr from-amber-600 via-yellow-400 to-amber-200 rotate-45 rounded-[2px] shadow-[0_0_8px_rgba(245,158,11,0.6)]" />
+              <div className="absolute inset-[1.5px] bg-gradient-to-b from-[#101d3f] to-[#060c1d] rotate-45 rounded-[2px]" />
+              <Sparkles className="relative z-10 w-3 h-3 text-amber-300" />
             </div>
 
             <div className="flex flex-col">
-              <span className="text-[10px] tracking-wider text-amber-300/80 uppercase font-extrabold drop-shadow">
+              <span className="text-[8.5px] tracking-wider text-amber-300/80 uppercase font-extrabold">
                 CURRENT RANK
               </span>
-              <div className="flex items-baseline gap-2 mt-0.5">
-                {/* Slimmer, cleaner rank tier label */}
-                <span className={`text-sm font-extrabold uppercase tracking-wide text-transparent bg-clip-text bg-gradient-to-r ${getRankColor(profile.rank_tier)} drop-shadow`}>
+              <div className="flex items-baseline gap-1.5">
+                <span className={`text-xs font-black uppercase tracking-tight text-transparent bg-clip-text bg-gradient-to-r ${getRankColor(profile.rank_tier)} drop-shadow`}>
                   {profile.rank_tier} {profile.rank_division}
                 </span>
                 {profile.rank_points > 0 && (
-                  <span className="text-sm font-black text-amber-300 font-mono flex items-center gap-0.5 drop-shadow-[0_0_8px_rgba(251,191,36,0.85)]">
+                  <span className="text-xs font-black text-amber-300 font-mono drop-shadow-[0_0_6px_rgba(251,191,36,0.8)]">
                     ⭐ {profile.rank_points}
                   </span>
                 )}
@@ -283,12 +278,12 @@ export default function Overlay() {
 
       case 'historicalBest':
         return (
-          <div key={key} className="relative z-10 flex flex-col items-center px-5 first:pl-0 border-l first:border-l-0 border-amber-500/25">
-            <span className="text-[11px] tracking-widest text-amber-200 uppercase font-black drop-shadow flex items-center gap-1">
-              <Award className="w-3.5 h-3.5 text-cyan-400" /> HISTORICAL BEST
+          <div key={key} className="relative z-10 flex flex-col items-center px-3.5 first:pl-0 border-l first:border-l-0 border-amber-500/20">
+            <span className="text-[9px] tracking-wider text-amber-200/90 uppercase font-black flex items-center gap-1">
+              <Award className="w-2.5 h-2.5 text-cyan-400" /> HISTORICAL
             </span>
-            <div className="text-sm font-black text-cyan-300 font-mono tracking-tight mt-1 flex items-center gap-1.5">
-              <span className="text-xs uppercase">{profile.historical_tier}</span>
+            <div className="text-xs font-black text-cyan-300 font-mono tracking-tight mt-0.5 flex items-center gap-1">
+              <span className="text-[10px] uppercase">{profile.historical_tier}</span>
               <span className="text-amber-300">⭐ {profile.historical_stars}</span>
             </div>
           </div>
@@ -296,11 +291,11 @@ export default function Overlay() {
 
       case 'winRate':
         return (
-          <div key={key} className="relative z-10 flex flex-col items-center px-5 first:pl-0 border-l first:border-l-0 border-amber-500/25">
-            <span className="text-[11px] tracking-widest text-amber-200 uppercase font-black drop-shadow">
+          <div key={key} className="relative z-10 flex flex-col items-center px-3.5 first:pl-0 border-l first:border-l-0 border-amber-500/20">
+            <span className="text-[9px] tracking-wider text-amber-200/90 uppercase font-black">
               WIN RATE
             </span>
-            <span className="text-lg font-black text-emerald-400 font-mono tracking-tight mt-1 drop-shadow-[0_0_8px_rgba(52,211,153,0.7)]">
+            <span className="text-sm font-black text-emerald-400 font-mono tracking-tight mt-0.5 drop-shadow-[0_0_6px_rgba(52,211,153,0.7)]">
               {profile.season_win_rate}%
             </span>
           </div>
@@ -308,11 +303,11 @@ export default function Overlay() {
 
       case 'championRate':
         return (
-          <div key={key} className="relative z-10 flex flex-col items-center px-5 first:pl-0 border-l first:border-l-0 border-amber-500/25">
-            <span className="text-[11px] tracking-widest text-amber-200 uppercase font-black drop-shadow flex items-center gap-1">
-              <Trophy className="w-3.5 h-3.5 text-amber-400" /> CHAMPION
+          <div key={key} className="relative z-10 flex flex-col items-center px-3.5 first:pl-0 border-l first:border-l-0 border-amber-500/20">
+            <span className="text-[9px] tracking-wider text-amber-200/90 uppercase font-black flex items-center gap-1">
+              <Trophy className="w-2.5 h-2.5 text-amber-400" /> CHAMPION
             </span>
-            <span className="text-lg font-black text-amber-300 font-mono tracking-tight mt-1 drop-shadow-[0_0_8px_rgba(251,191,36,0.7)]">
+            <span className="text-sm font-black text-amber-300 font-mono tracking-tight mt-0.5 drop-shadow-[0_0_6px_rgba(251,191,36,0.7)]">
               {profile.champion_rate}%
             </span>
           </div>
@@ -320,14 +315,14 @@ export default function Overlay() {
 
       case 'avgRank':
         return (
-          <div key={key} className="relative z-10 flex flex-col items-center px-5 first:pl-0 border-l first:border-l-0 border-amber-500/25">
+          <div key={key} className="relative z-10 flex flex-col items-center px-3.5 first:pl-0 border-l first:border-l-0 border-amber-500/20">
             <div className="flex items-center gap-1">
-              <TrendingUp className="w-4 h-4 text-cyan-400 drop-shadow" />
-              <span className="text-[11px] tracking-widest text-amber-200 uppercase font-black drop-shadow">
+              <TrendingUp className="w-3 h-3 text-cyan-400" />
+              <span className="text-[9px] tracking-wider text-amber-200/90 uppercase font-black">
                 AVG RANK
               </span>
             </div>
-            <span className="text-lg font-black text-cyan-300 font-mono tracking-tight mt-1 drop-shadow-[0_0_8px_rgba(34,211,238,0.7)]">
+            <span className="text-sm font-black text-cyan-300 font-mono tracking-tight mt-0.5 drop-shadow-[0_0_6px_rgba(34,211,238,0.7)]">
               {profile.season_avg_rank}
             </span>
           </div>
@@ -335,21 +330,29 @@ export default function Overlay() {
 
       case 'topCommanders':
         return (
-          <div key={key} className="relative z-10 flex flex-col items-center px-5 first:pl-0 border-l border-r border-amber-500/25">
-            <span className="text-[11px] tracking-widest text-amber-200 uppercase font-black drop-shadow mb-1.5">
+          <div key={key} className="relative z-10 flex flex-col items-center px-3.5 first:pl-0 border-l border-amber-500/20">
+            <span className="text-[9px] tracking-wider text-amber-200/90 uppercase font-black mb-1">
               GO-TO
             </span>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               {profile.top_commanders.slice(0, 3).map((cmdId) => {
                 const cmd = findCommander(cmdId);
                 if (!cmd) return null;
                 return (
                   <div
                     key={cmd.id}
-                    className="w-8 h-8 rounded-full border border-amber-400/80 overflow-hidden bg-slate-900 shadow-md"
+                    className="w-6 h-6 rounded-full border border-amber-400/70 overflow-hidden bg-slate-900 shadow-sm flex items-center justify-center"
                     title={cmd.name}
                   >
-                    <img src={cmd.avatar} alt={cmd.name} className="w-full h-full object-cover object-top" />
+                    <img 
+                      src={cmd.avatar} 
+                      alt={cmd.name} 
+                      className="w-full h-full object-cover object-top"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }} 
+                    />
+                    <span className="text-[8px] font-black text-amber-300">{cmd.name.slice(0, 2).toUpperCase()}</span>
                   </div>
                 );
               })}
@@ -363,10 +366,10 @@ export default function Overlay() {
   };
 
   return (
-    <div className="p-3 inline-flex flex-col select-none font-sans bg-transparent">
-      {/* 1. MATCH HISTORY STRIP: Strictly maximum 5 avatars */}
+    <div className="p-2 inline-flex flex-col select-none font-sans bg-transparent">
+      {/* 1. MATCH HISTORY STRIP: Compact, left-aligned, up to 5 */}
       {displayAvatars.length > 0 && (
-        <div className="flex items-center gap-2.5 pb-2.5">
+        <div className="flex items-center gap-1.5 pb-2">
           {displayAvatars.map((match) => {
             const theme = getPlacementTheme(match.placement);
             const isFirst = match.placement === 1;
@@ -374,9 +377,9 @@ export default function Overlay() {
             return (
               <div key={match.id} className="flex flex-col items-center group relative">
                 <div
-                  className={`relative w-12 h-14 rounded-sm overflow-hidden bg-gradient-to-b from-slate-900 via-[#0d1527] to-[#080d1a] border-2 transition-all duration-200 flex items-center justify-center ${theme.cardBorder}`}
+                  className={`relative w-9 h-11 rounded-sm overflow-hidden bg-gradient-to-b from-slate-900 via-[#0d1527] to-[#080d1a] border transition-all duration-200 flex items-center justify-center ${theme.cardBorder}`}
                 >
-                  <span className="absolute text-xs font-black text-amber-200/40 pointer-events-none tracking-widest">
+                  <span className="absolute text-[9px] font-black text-amber-200/40 pointer-events-none tracking-widest">
                     {match.commander.name.slice(0, 2).toUpperCase()}
                   </span>
 
@@ -390,49 +393,35 @@ export default function Overlay() {
                     }}
                   />
 
-                  <div className={`absolute top-0 left-0 w-2.5 h-2.5 border-t-2 border-l-2 ${theme.cornerTrim} z-20 pointer-events-none`} />
+                  <div className={`absolute top-0 left-0 w-2 h-2 border-t border-l ${theme.cornerTrim} z-20 pointer-events-none`} />
 
                   {isFirst && (
-                    <div className="absolute top-0 right-0 bg-gradient-to-br from-amber-300 via-amber-500 to-yellow-600 text-slate-950 p-0.5 rounded-bl shadow-md z-20">
-                      <Crown className="w-3 h-3 drop-shadow" />
+                    <div className="absolute top-0 right-0 bg-gradient-to-br from-amber-300 via-amber-500 to-yellow-600 text-slate-950 p-0.5 rounded-bl shadow-sm z-20">
+                      <Crown className="w-2.5 h-2.5 drop-shadow" />
                     </div>
                   )}
                 </div>
 
-                <div className="mt-1 flex items-center justify-center">
-                  <span className={`text-[11px] font-black uppercase tracking-wider px-2 py-0.5 rounded-sm border ${theme.badge}`}>
+                <div className="mt-0.5 flex items-center justify-center">
+                  <span className={`text-[9px] font-black uppercase tracking-wider px-1.5 py-0.2 rounded-sm border ${theme.badge}`}>
                     #{match.placement}
                   </span>
                 </div>
 
-                <div className={`w-full h-1 mt-1 rounded-sm ${theme.bar}`} />
+                <div className={`w-full h-0.5 mt-0.5 rounded-sm ${theme.bar}`} />
               </div>
             );
           })}
         </div>
       )}
 
-      {/* 2. ENLARGED REORDERABLE STATS BANNER */}
-      <div className="relative inline-flex items-center px-8 py-4 select-none">
-        <div 
-          className="absolute inset-0 bg-gradient-to-r from-[#030712]/95 via-[#0a1633]/92 to-[#030712]/95 backdrop-blur-md shadow-[0_6px_40px_rgba(0,0,0,0.95)]"
-          style={{
-            clipPath: 'polygon(16px 0%, calc(100% - 16px) 0%, 100% 16px, 100% calc(100% - 16px), calc(100% - 16px) 100%, 16px 100%, 0% calc(100% - 16px), 0% 16px)',
-          }}
-        />
-
-        <div 
-          className="absolute inset-0 pointer-events-none border-2 border-amber-500/60"
-          style={{
-            clipPath: 'polygon(16px 0%, calc(100% - 16px) 0%, 100% 16px, 100% calc(100% - 16px), calc(100% - 16px) 100%, 16px 100%, 0% calc(100% - 16px), 0% 16px)',
-          }}
-        />
-
-        {/* Cyberpunk gold corner accents */}
-        <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-amber-300 drop-shadow-[0_0_8px_rgba(252,211,77,0.9)] pointer-events-none" />
-        <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-amber-300 drop-shadow-[0_0_8px_rgba(252,211,77,0.9)] pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-amber-300 drop-shadow-[0_0_8px_rgba(252,211,77,0.9)] pointer-events-none" />
-        <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-amber-300 drop-shadow-[0_0_8px_rgba(252,211,77,0.9)] pointer-events-none" />
+      {/* 2. COMPACT, STREAM-OPTIMIZED HUD BANNER */}
+      <div className="relative inline-flex items-center px-4 py-2 select-none border border-amber-500/50 rounded-md bg-[#040814]/95 shadow-[0_4px_24px_rgba(0,0,0,0.85)] backdrop-blur-md">
+        {/* Subtle glowing corner markers */}
+        <div className="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-amber-300 pointer-events-none" />
+        <div className="absolute top-0 right-0 w-2 h-2 border-t-2 border-r-2 border-amber-300 pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-2 h-2 border-b-2 border-l-2 border-amber-300 pointer-events-none" />
+        <div className="absolute bottom-0 right-0 w-2 h-2 border-b-2 border-r-2 border-amber-300 pointer-events-none" />
 
         <div className="relative z-10 flex items-center">
           {order.map((key) => renderWidget(key))}
