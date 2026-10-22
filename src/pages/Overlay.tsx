@@ -87,7 +87,7 @@ function getRankColor(tier: string) {
 
 export default function Overlay() {
   const { streamerId = 'default_streamer' } = useParams();
-  const [matches, setMatches] = useState<MatchRecord[]>([]);
+  const [allSessionMatches, setAllSessionMatches] = useState<MatchRecord[]>([]);
   const [profile, setProfile] = useState<ProfileData>({
     rank_tier: 'Mythical Honor',
     rank_division: '',
@@ -114,15 +114,15 @@ export default function Overlay() {
   });
 
   const loadMatches = async () => {
+    // Fetch all session matches without capping so win/loss count keeps growing indefinitely
     const { data: matchData } = await supabase
       .from('stream_matches')
       .select('*')
       .eq('streamer_id', streamerId)
-      .order('created_at', { ascending: false })
-      .limit(8);
+      .order('created_at', { ascending: false });
 
     if (matchData) {
-      setMatches(
+      setAllSessionMatches(
         matchData.map((m) => ({
           id: m.id,
           placement: m.placement,
@@ -130,7 +130,7 @@ export default function Overlay() {
         }))
       );
     } else {
-      setMatches([]);
+      setAllSessionMatches([]);
     }
   };
 
@@ -165,7 +165,6 @@ export default function Overlay() {
     loadMatches();
     loadProfile();
 
-    // Listen for new matches
     const matchChannel = supabase
       .channel(`matches_${streamerId}`)
       .on(
@@ -182,7 +181,6 @@ export default function Overlay() {
       )
       .subscribe();
 
-    // Listen for profile changes (and trigger loadMatches to immediately catch session resets)
     const profileChannel = supabase
       .channel(`profile_${streamerId}`)
       .on(
@@ -201,8 +199,6 @@ export default function Overlay() {
             enabled_widgets: u.enabled_widgets || prev.enabled_widgets,
             widget_order: u.widget_order || prev.widget_order,
           }));
-
-          // Force fresh fetch of match history when profile resets
           loadMatches();
         }
       )
@@ -214,8 +210,13 @@ export default function Overlay() {
     };
   }, [streamerId]);
 
-  const top4Count = matches.filter((m) => m.placement <= 4).length;
-  const bottom4Count = matches.length - top4Count;
+  // Full session calculations (never capped)
+  const top4Count = allSessionMatches.filter((m) => m.placement <= 4).length;
+  const bottom4Count = allSessionMatches.length - top4Count;
+
+  // Strict cap to the latest 5 matches for display
+  const displayAvatars = allSessionMatches.slice(0, 5);
+
   const widgets = profile.enabled_widgets || {};
   const order = profile.widget_order || [];
 
@@ -225,16 +226,16 @@ export default function Overlay() {
     switch (key) {
       case 'sessionRecord':
         return (
-          <div key={key} className="relative z-10 flex flex-col items-center px-4 first:pl-0 border-l first:border-l-0 border-amber-500/20">
+          <div key={key} className="relative z-10 flex flex-col items-center px-5 first:pl-0 border-l first:border-l-0 border-amber-500/25">
             <div className="flex items-center gap-1.5">
-              <Swords className="w-3.5 h-3.5 text-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.8)]" />
-              <span className="text-[10px] tracking-widest text-amber-200 uppercase font-black drop-shadow">
+              <Swords className="w-4 h-4 text-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.8)]" />
+              <span className="text-[11px] tracking-widest text-amber-200 uppercase font-black drop-shadow">
                 RECORD
               </span>
             </div>
-            <div className="text-base font-black tracking-wider mt-0.5 font-mono">
+            <div className="text-lg font-black tracking-wider mt-1 font-mono">
               <span className="text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.8)]">{top4Count}W</span>
-              <span className="text-amber-500/40 mx-1.5 font-sans font-light">|</span>
+              <span className="text-amber-500/40 mx-2 font-sans font-light">|</span>
               <span className="text-rose-400 drop-shadow-[0_0_8px_rgba(244,63,94,0.6)]">{bottom4Count}L</span>
             </div>
           </div>
@@ -242,11 +243,11 @@ export default function Overlay() {
 
       case 'starDelta':
         return (
-          <div key={key} className="relative z-10 flex flex-col items-center px-4 first:pl-0 border-l first:border-l-0 border-amber-500/20">
-            <span className="text-[10px] tracking-widest text-amber-200 uppercase font-black drop-shadow flex items-center gap-1">
-              <Flame className="w-3 h-3 text-amber-400" /> SESSION ⭐
+          <div key={key} className="relative z-10 flex flex-col items-center px-5 first:pl-0 border-l first:border-l-0 border-amber-500/25">
+            <span className="text-[11px] tracking-widest text-amber-200 uppercase font-black drop-shadow flex items-center gap-1">
+              <Flame className="w-3.5 h-3.5 text-amber-400" /> SESSION ⭐
             </span>
-            <span className={`text-base font-black font-mono mt-0.5 ${profile.star_delta >= 0 ? 'text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]' : 'text-rose-400'}`}>
+            <span className={`text-lg font-black font-mono mt-1 ${profile.star_delta >= 0 ? 'text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]' : 'text-rose-400'}`}>
               {profile.star_delta > 0 ? `+${profile.star_delta}` : profile.star_delta} ⭐
             </span>
           </div>
@@ -254,23 +255,24 @@ export default function Overlay() {
 
       case 'currentRank':
         return (
-          <div key={key} className="relative z-10 flex items-center gap-3 px-4 first:pl-0 border-l first:border-l-0 border-amber-500/20">
-            <div className="relative w-9 h-9 flex items-center justify-center shrink-0">
-              <div className="absolute inset-0 bg-gradient-to-tr from-amber-600 via-yellow-400 to-amber-200 rotate-45 rounded-[3px] shadow-[0_0_12px_rgba(245,158,11,0.7)]" />
+          <div key={key} className="relative z-10 flex items-center gap-3.5 px-5 first:pl-0 border-l first:border-l-0 border-amber-500/25">
+            <div className="relative w-10 h-10 flex items-center justify-center shrink-0">
+              <div className="absolute inset-0 bg-gradient-to-tr from-amber-600 via-yellow-400 to-amber-200 rotate-45 rounded-[3px] shadow-[0_0_14px_rgba(245,158,11,0.7)]" />
               <div className="absolute inset-[2px] bg-gradient-to-b from-[#101d3f] to-[#060c1d] rotate-45 rounded-[2px]" />
               <Sparkles className="relative z-10 w-4 h-4 text-amber-300 drop-shadow" />
             </div>
 
             <div className="flex flex-col">
-              <span className="text-[10px] tracking-widest text-amber-200 uppercase font-black drop-shadow">
+              <span className="text-[10px] tracking-wider text-amber-300/80 uppercase font-extrabold drop-shadow">
                 CURRENT RANK
               </span>
               <div className="flex items-baseline gap-2 mt-0.5">
-                <span className={`text-base font-black text-transparent bg-clip-text bg-gradient-to-r ${getRankColor(profile.rank_tier)} drop-shadow tracking-wide`}>
-                  {profile.rank_tier.toUpperCase()} {profile.rank_division}
+                {/* Slimmer, cleaner rank tier label */}
+                <span className={`text-sm font-extrabold uppercase tracking-wide text-transparent bg-clip-text bg-gradient-to-r ${getRankColor(profile.rank_tier)} drop-shadow`}>
+                  {profile.rank_tier} {profile.rank_division}
                 </span>
                 {profile.rank_points > 0 && (
-                  <span className="text-sm font-extrabold text-amber-300 font-mono flex items-center gap-0.5 drop-shadow-[0_0_6px_rgba(251,191,36,0.8)]">
+                  <span className="text-sm font-black text-amber-300 font-mono flex items-center gap-0.5 drop-shadow-[0_0_8px_rgba(251,191,36,0.85)]">
                     ⭐ {profile.rank_points}
                   </span>
                 )}
@@ -281,12 +283,12 @@ export default function Overlay() {
 
       case 'historicalBest':
         return (
-          <div key={key} className="relative z-10 flex flex-col items-center px-4 first:pl-0 border-l first:border-l-0 border-amber-500/20">
-            <span className="text-[10px] tracking-widest text-amber-200 uppercase font-black drop-shadow flex items-center gap-1">
-              <Award className="w-3 h-3 text-cyan-400" /> HISTORICAL BEST
+          <div key={key} className="relative z-10 flex flex-col items-center px-5 first:pl-0 border-l first:border-l-0 border-amber-500/25">
+            <span className="text-[11px] tracking-widest text-amber-200 uppercase font-black drop-shadow flex items-center gap-1">
+              <Award className="w-3.5 h-3.5 text-cyan-400" /> HISTORICAL BEST
             </span>
-            <div className="text-sm font-black text-cyan-300 font-mono tracking-tight mt-0.5 flex items-center gap-1">
-              <span>{profile.historical_tier.toUpperCase()}</span>
+            <div className="text-sm font-black text-cyan-300 font-mono tracking-tight mt-1 flex items-center gap-1.5">
+              <span className="text-xs uppercase">{profile.historical_tier}</span>
               <span className="text-amber-300">⭐ {profile.historical_stars}</span>
             </div>
           </div>
@@ -294,11 +296,11 @@ export default function Overlay() {
 
       case 'winRate':
         return (
-          <div key={key} className="relative z-10 flex flex-col items-center px-4 first:pl-0 border-l first:border-l-0 border-amber-500/20">
-            <span className="text-[10px] tracking-widest text-amber-200 uppercase font-black drop-shadow">
+          <div key={key} className="relative z-10 flex flex-col items-center px-5 first:pl-0 border-l first:border-l-0 border-amber-500/25">
+            <span className="text-[11px] tracking-widest text-amber-200 uppercase font-black drop-shadow">
               WIN RATE
             </span>
-            <span className="text-base font-black text-emerald-400 font-mono tracking-tight mt-0.5 drop-shadow-[0_0_8px_rgba(52,211,153,0.7)]">
+            <span className="text-lg font-black text-emerald-400 font-mono tracking-tight mt-1 drop-shadow-[0_0_8px_rgba(52,211,153,0.7)]">
               {profile.season_win_rate}%
             </span>
           </div>
@@ -306,11 +308,11 @@ export default function Overlay() {
 
       case 'championRate':
         return (
-          <div key={key} className="relative z-10 flex flex-col items-center px-4 first:pl-0 border-l first:border-l-0 border-amber-500/20">
-            <span className="text-[10px] tracking-widest text-amber-200 uppercase font-black drop-shadow flex items-center gap-1">
-              <Trophy className="w-3 h-3 text-amber-400" /> CHAMPION
+          <div key={key} className="relative z-10 flex flex-col items-center px-5 first:pl-0 border-l first:border-l-0 border-amber-500/25">
+            <span className="text-[11px] tracking-widest text-amber-200 uppercase font-black drop-shadow flex items-center gap-1">
+              <Trophy className="w-3.5 h-3.5 text-amber-400" /> CHAMPION
             </span>
-            <span className="text-base font-black text-amber-300 font-mono tracking-tight mt-0.5 drop-shadow-[0_0_8px_rgba(251,191,36,0.7)]">
+            <span className="text-lg font-black text-amber-300 font-mono tracking-tight mt-1 drop-shadow-[0_0_8px_rgba(251,191,36,0.7)]">
               {profile.champion_rate}%
             </span>
           </div>
@@ -318,14 +320,14 @@ export default function Overlay() {
 
       case 'avgRank':
         return (
-          <div key={key} className="relative z-10 flex flex-col items-center px-4 first:pl-0 border-l first:border-l-0 border-amber-500/20">
+          <div key={key} className="relative z-10 flex flex-col items-center px-5 first:pl-0 border-l first:border-l-0 border-amber-500/25">
             <div className="flex items-center gap-1">
-              <TrendingUp className="w-3.5 h-3.5 text-cyan-400 drop-shadow" />
-              <span className="text-[10px] tracking-widest text-amber-200 uppercase font-black drop-shadow">
+              <TrendingUp className="w-4 h-4 text-cyan-400 drop-shadow" />
+              <span className="text-[11px] tracking-widest text-amber-200 uppercase font-black drop-shadow">
                 AVG RANK
               </span>
             </div>
-            <span className="text-base font-black text-cyan-300 font-mono tracking-tight mt-0.5 drop-shadow-[0_0_8px_rgba(34,211,238,0.7)]">
+            <span className="text-lg font-black text-cyan-300 font-mono tracking-tight mt-1 drop-shadow-[0_0_8px_rgba(34,211,238,0.7)]">
               {profile.season_avg_rank}
             </span>
           </div>
@@ -333,18 +335,18 @@ export default function Overlay() {
 
       case 'topCommanders':
         return (
-          <div key={key} className="relative z-10 flex flex-col items-center px-4 first:pl-0 border-l border-r border-amber-500/20">
-            <span className="text-[10px] tracking-widest text-amber-200 uppercase font-black drop-shadow mb-1">
+          <div key={key} className="relative z-10 flex flex-col items-center px-5 first:pl-0 border-l border-r border-amber-500/25">
+            <span className="text-[11px] tracking-widest text-amber-200 uppercase font-black drop-shadow mb-1.5">
               GO-TO
             </span>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2">
               {profile.top_commanders.slice(0, 3).map((cmdId) => {
                 const cmd = findCommander(cmdId);
                 if (!cmd) return null;
                 return (
                   <div
                     key={cmd.id}
-                    className="w-7 h-7 rounded-full border border-amber-400/80 overflow-hidden bg-slate-900 shadow-md"
+                    className="w-8 h-8 rounded-full border border-amber-400/80 overflow-hidden bg-slate-900 shadow-md"
                     title={cmd.name}
                   >
                     <img src={cmd.avatar} alt={cmd.name} className="w-full h-full object-cover object-top" />
@@ -361,18 +363,18 @@ export default function Overlay() {
   };
 
   return (
-    <div className="p-2 inline-flex flex-col select-none font-sans bg-transparent">
-      {/* 1. MATCH HISTORY STRIP (Appears only when matches are present) */}
-      {matches.length > 0 && (
-        <div className="flex items-center gap-2 pb-2">
-          {matches.map((match) => {
+    <div className="p-3 inline-flex flex-col select-none font-sans bg-transparent">
+      {/* 1. MATCH HISTORY STRIP: Strictly maximum 5 avatars */}
+      {displayAvatars.length > 0 && (
+        <div className="flex items-center gap-2.5 pb-2.5">
+          {displayAvatars.map((match) => {
             const theme = getPlacementTheme(match.placement);
             const isFirst = match.placement === 1;
 
             return (
               <div key={match.id} className="flex flex-col items-center group relative">
                 <div
-                  className={`relative w-11 h-12 rounded-sm overflow-hidden bg-gradient-to-b from-slate-900 via-[#0d1527] to-[#080d1a] border-2 transition-all duration-200 flex items-center justify-center ${theme.cardBorder}`}
+                  className={`relative w-12 h-14 rounded-sm overflow-hidden bg-gradient-to-b from-slate-900 via-[#0d1527] to-[#080d1a] border-2 transition-all duration-200 flex items-center justify-center ${theme.cardBorder}`}
                 >
                   <span className="absolute text-xs font-black text-amber-200/40 pointer-events-none tracking-widest">
                     {match.commander.name.slice(0, 2).toUpperCase()}
@@ -388,17 +390,17 @@ export default function Overlay() {
                     }}
                   />
 
-                  <div className={`absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 ${theme.cornerTrim} z-20 pointer-events-none`} />
+                  <div className={`absolute top-0 left-0 w-2.5 h-2.5 border-t-2 border-l-2 ${theme.cornerTrim} z-20 pointer-events-none`} />
 
                   {isFirst && (
                     <div className="absolute top-0 right-0 bg-gradient-to-br from-amber-300 via-amber-500 to-yellow-600 text-slate-950 p-0.5 rounded-bl shadow-md z-20">
-                      <Crown className="w-2.5 h-2.5 drop-shadow" />
+                      <Crown className="w-3 h-3 drop-shadow" />
                     </div>
                   )}
                 </div>
 
                 <div className="mt-1 flex items-center justify-center">
-                  <span className={`text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-sm border ${theme.badge}`}>
+                  <span className={`text-[11px] font-black uppercase tracking-wider px-2 py-0.5 rounded-sm border ${theme.badge}`}>
                     #{match.placement}
                   </span>
                 </div>
@@ -410,26 +412,27 @@ export default function Overlay() {
         </div>
       )}
 
-      {/* 2. REORDERABLE STATS BANNER */}
-      <div className="relative inline-flex items-center px-6 py-3 select-none">
+      {/* 2. ENLARGED REORDERABLE STATS BANNER */}
+      <div className="relative inline-flex items-center px-8 py-4 select-none">
         <div 
-          className="absolute inset-0 bg-gradient-to-r from-[#030712]/95 via-[#0a1633]/90 to-[#030712]/95 backdrop-blur-md shadow-[0_4px_35px_rgba(0,0,0,0.95)]"
+          className="absolute inset-0 bg-gradient-to-r from-[#030712]/95 via-[#0a1633]/92 to-[#030712]/95 backdrop-blur-md shadow-[0_6px_40px_rgba(0,0,0,0.95)]"
           style={{
-            clipPath: 'polygon(14px 0%, calc(100% - 14px) 0%, 100% 14px, 100% calc(100% - 14px), calc(100% - 14px) 100%, 14px 100%, 0% calc(100% - 14px), 0% 14px)',
+            clipPath: 'polygon(16px 0%, calc(100% - 16px) 0%, 100% 16px, 100% calc(100% - 16px), calc(100% - 16px) 100%, 16px 100%, 0% calc(100% - 16px), 0% 16px)',
           }}
         />
 
         <div 
-          className="absolute inset-0 pointer-events-none border-2 border-amber-500/50"
+          className="absolute inset-0 pointer-events-none border-2 border-amber-500/60"
           style={{
-            clipPath: 'polygon(14px 0%, calc(100% - 14px) 0%, 100% 14px, 100% calc(100% - 14px), calc(100% - 14px) 100%, 14px 100%, 0% calc(100% - 14px), 0% 14px)',
+            clipPath: 'polygon(16px 0%, calc(100% - 16px) 0%, 100% 16px, 100% calc(100% - 16px), calc(100% - 16px) 100%, 16px 100%, 0% calc(100% - 16px), 0% 16px)',
           }}
         />
 
-        <div className="absolute top-0 left-0 w-3.5 h-3.5 border-t-2 border-l-2 border-amber-300 drop-shadow-[0_0_6px_rgba(252,211,77,0.9)] pointer-events-none" />
-        <div className="absolute top-0 right-0 w-3.5 h-3.5 border-t-2 border-r-2 border-amber-300 drop-shadow-[0_0_6px_rgba(252,211,77,0.9)] pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-3.5 h-3.5 border-b-2 border-l-2 border-amber-300 drop-shadow-[0_0_6px_rgba(252,211,77,0.9)] pointer-events-none" />
-        <div className="absolute bottom-0 right-0 w-3.5 h-3.5 border-b-2 border-r-2 border-amber-300 drop-shadow-[0_0_6px_rgba(252,211,77,0.9)] pointer-events-none" />
+        {/* Cyberpunk gold corner accents */}
+        <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-amber-300 drop-shadow-[0_0_8px_rgba(252,211,77,0.9)] pointer-events-none" />
+        <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-amber-300 drop-shadow-[0_0_8px_rgba(252,211,77,0.9)] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-amber-300 drop-shadow-[0_0_8px_rgba(252,211,77,0.9)] pointer-events-none" />
+        <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-amber-300 drop-shadow-[0_0_8px_rgba(252,211,77,0.9)] pointer-events-none" />
 
         <div className="relative z-10 flex items-center">
           {order.map((key) => renderWidget(key))}
