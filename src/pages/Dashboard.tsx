@@ -13,8 +13,7 @@ import {
   Settings2, 
   SlidersHorizontal, 
   ArrowLeft, 
-  ArrowRight,
-  AlertTriangle 
+  ArrowRight
 } from 'lucide-react';
 import { MCGG_COMMANDERS, findCommander } from '../data/commanders';
 import { supabase } from '../supabase';
