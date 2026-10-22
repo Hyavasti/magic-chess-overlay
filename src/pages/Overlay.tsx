@@ -113,59 +113,59 @@ export default function Overlay() {
     widget_order: ['currentRank', 'sessionRecord', 'starDelta', 'winRate', 'championRate', 'avgRank', 'historicalBest', 'topCommanders'],
   });
 
+  const loadMatches = async () => {
+    const { data: matchData } = await supabase
+      .from('stream_matches')
+      .select('*')
+      .eq('streamer_id', streamerId)
+      .order('created_at', { ascending: false })
+      .limit(8);
+
+    if (matchData) {
+      setMatches(
+        matchData.map((m) => ({
+          id: m.id,
+          placement: m.placement,
+          commander: findCommander(m.commander_id) || MCGG_COMMANDERS[0],
+        }))
+      );
+    } else {
+      setMatches([]);
+    }
+  };
+
+  const loadProfile = async () => {
+    const { data: profileData } = await supabase
+      .from('streamer_profiles')
+      .select('*')
+      .eq('streamer_id', streamerId)
+      .single();
+
+    if (profileData) {
+      setProfile((prev) => ({
+        ...prev,
+        rank_tier: profileData.rank_tier || prev.rank_tier,
+        rank_division: profileData.rank_division || '',
+        rank_points: profileData.rank_points ?? prev.rank_points,
+        historical_tier: profileData.historical_tier || prev.historical_tier,
+        historical_stars: profileData.historical_stars ?? prev.historical_stars,
+        total_matches: profileData.total_matches ?? prev.total_matches,
+        season_win_rate: profileData.season_win_rate ?? prev.season_win_rate,
+        champion_rate: profileData.champion_rate ?? prev.champion_rate,
+        season_avg_rank: profileData.season_avg_rank ?? prev.season_avg_rank,
+        star_delta: profileData.star_delta ?? prev.star_delta,
+        top_commanders: profileData.top_commanders || prev.top_commanders,
+        enabled_widgets: profileData.enabled_widgets || prev.enabled_widgets,
+        widget_order: profileData.widget_order || prev.widget_order,
+      }));
+    }
+  };
+
   useEffect(() => {
-    async function loadMatches() {
-      const { data: matchData } = await supabase
-        .from('stream_matches')
-        .select('*')
-        .eq('streamer_id', streamerId)
-        .order('created_at', { ascending: false })
-        .limit(10);
-
-      if (matchData) {
-        setMatches(
-          matchData.map((m) => ({
-            id: m.id,
-            placement: m.placement,
-            commander: findCommander(m.commander_id) || MCGG_COMMANDERS[0],
-          }))
-        );
-      } else {
-        setMatches([]);
-      }
-    }
-
-    async function loadProfile() {
-      const { data: profileData } = await supabase
-        .from('streamer_profiles')
-        .select('*')
-        .eq('streamer_id', streamerId)
-        .single();
-
-      if (profileData) {
-        setProfile((prev) => ({
-          ...prev,
-          rank_tier: profileData.rank_tier || prev.rank_tier,
-          rank_division: profileData.rank_division || '',
-          rank_points: profileData.rank_points ?? prev.rank_points,
-          historical_tier: profileData.historical_tier || prev.historical_tier,
-          historical_stars: profileData.historical_stars ?? prev.historical_stars,
-          total_matches: profileData.total_matches ?? prev.total_matches,
-          season_win_rate: profileData.season_win_rate ?? prev.season_win_rate,
-          champion_rate: profileData.champion_rate ?? prev.champion_rate,
-          season_avg_rank: profileData.season_avg_rank ?? prev.season_avg_rank,
-          star_delta: profileData.star_delta ?? prev.star_delta,
-          top_commanders: profileData.top_commanders || prev.top_commanders,
-          enabled_widgets: profileData.enabled_widgets || prev.enabled_widgets,
-          widget_order: profileData.widget_order || prev.widget_order,
-        }));
-      }
-    }
-
     loadMatches();
     loadProfile();
 
-    // Listen for all match events (INSERT for additions, DELETE for session resets)
+    // Listen for new matches
     const matchChannel = supabase
       .channel(`matches_${streamerId}`)
       .on(
@@ -182,6 +182,7 @@ export default function Overlay() {
       )
       .subscribe();
 
+    // Listen for profile changes (and trigger loadMatches to immediately catch session resets)
     const profileChannel = supabase
       .channel(`profile_${streamerId}`)
       .on(
@@ -200,6 +201,9 @@ export default function Overlay() {
             enabled_widgets: u.enabled_widgets || prev.enabled_widgets,
             widget_order: u.widget_order || prev.widget_order,
           }));
+
+          // Force fresh fetch of match history when profile resets
+          loadMatches();
         }
       )
       .subscribe();
@@ -358,10 +362,10 @@ export default function Overlay() {
 
   return (
     <div className="p-2 inline-flex flex-col select-none font-sans bg-transparent">
-      {/* 1. MATCH HISTORY STRIP (Renders only if matches exist) */}
+      {/* 1. MATCH HISTORY STRIP (Appears only when matches are present) */}
       {matches.length > 0 && (
         <div className="flex items-center gap-2 pb-2">
-          {matches.slice(0, 8).map((match) => {
+          {matches.map((match) => {
             const theme = getPlacementTheme(match.placement);
             const isFirst = match.placement === 1;
 

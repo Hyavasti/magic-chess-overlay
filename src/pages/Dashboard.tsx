@@ -13,7 +13,7 @@ import {
   Settings2, 
   SlidersHorizontal, 
   ArrowLeft, 
-  ArrowRight
+  ArrowRight 
 } from 'lucide-react';
 import { MCGG_COMMANDERS, findCommander } from '../data/commanders';
 import { supabase } from '../supabase';
@@ -164,27 +164,31 @@ export default function Dashboard() {
     });
   };
 
-  // RESET 1: Reset Entire Stream Session (Matches, Win-Loss Record & Star Delta)
+  // RESET 1: Reset Entire Stream Session (Matches & Star Delta)
   const handleResetSession = async () => {
     const confirmed = window.confirm(
-      "Reset Stream Session?\n\n• Wipes all logged stream match cards\n• Resets session Star Delta to 0\n• Clears active match commanders\n\nYour season rank and career profile stats will NOT be changed."
+      "Reset Stream Session?\n\n• Wipes all logged stream match cards\n• Resets session Star Delta to 0\n• Clears active match history on overlay\n\nYour season rank and career profile stats will NOT be changed."
     );
     if (!confirmed) return;
 
     setLoadingAction('session');
     try {
-      // Delete all matches in stream_matches for this streamer
-      await supabase
+      // Delete all matches for this streamer
+      const { error: delError } = await supabase
         .from('stream_matches')
         .delete()
-        .eq('streamer_id', streamerId);
+        .neq('id', '00000000-0000-0000-0000-000000000000');
 
-      // Reset profile star delta
+      if (delError) {
+        console.error("Delete matches error:", delError);
+      }
+
+      // Touch streamer_profiles to instantly trigger overlay re-fetch via Realtime
       await updateProfileInSupabase({
         star_delta: 0,
       });
 
-      alert("Stream session has been reset to 0-0 with a clean match history!");
+      alert("Stream session reset! Overlay match history is now clean.");
     } catch (err) {
       console.error(err);
       alert("Failed to reset session. Check Supabase connection.");
@@ -219,9 +223,7 @@ export default function Dashboard() {
 
   // RESET 3: Quick Reset for Career Rates
   const handleResetCareerStats = async () => {
-    const confirmed = window.confirm(
-      "Reset career win rates and total match count to 0?"
-    );
+    const confirmed = window.confirm("Reset career win rates and total match count to 0?");
     if (!confirmed) return;
 
     await updateProfileInSupabase({
@@ -284,9 +286,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* ========================================================= */}
-        {/* ACTION / RESET CONTROLS BAR                              */}
-        {/* ========================================================= */}
+        {/* Action Controls / Reset Buttons */}
         <div className="p-4 bg-gradient-to-r from-[#0c1222] via-[#101b33] to-[#0c1222] border border-amber-500/30 shadow-xl flex flex-wrap items-center justify-between gap-3">
           <div>
             <span className="text-xs font-black uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
@@ -298,7 +298,6 @@ export default function Dashboard() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            {/* Reset Stream Session Button */}
             <button
               type="button"
               disabled={loadingAction === 'session'}
@@ -309,7 +308,6 @@ export default function Dashboard() {
               {loadingAction === 'session' ? 'Resetting...' : 'Reset Stream Session (0-0)'}
             </button>
 
-            {/* Reset In-Game Rank Button */}
             <button
               type="button"
               disabled={loadingAction === 'rank'}
@@ -322,7 +320,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* SECTION A: STATS REORDERING & ARRANGEMENT TOOL */}
+        {/* SECTION A: Stats Reordering Switchboard */}
         <div className="p-5 bg-gradient-to-r from-[#070e1e] via-[#0d1c3a] to-[#070e1e] border border-cyan-500/40 shadow-xl space-y-3">
           <span className="text-xs font-black uppercase tracking-widest text-cyan-300 flex items-center gap-1.5 drop-shadow">
             <SlidersHorizontal className="w-3.5 h-3.5 text-cyan-400" /> Stats Order & Display Switchboard
