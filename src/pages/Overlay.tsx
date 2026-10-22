@@ -251,7 +251,7 @@ export default function Overlay() {
         return (
           <div key={key} className="flex-1 min-w-[130px] flex flex-col items-center justify-center p-2 rounded-sm bg-[#091326]/90 border border-[#c69848]/30 shadow-[inset_0_1px_0_rgba(255,229,143,0.1)]">
             <span className="text-[9.5px] tracking-wider text-[#d8b467] uppercase font-black flex items-center gap-1">
-              <Flame className="w-3 h-3 text-[#f5c842]" /> SESSION ⭐
+              <Flame className="w-3 h-3 text-[#f5c842]" /> Stars Gained ⭐
             </span>
             <span className={`text-sm font-black font-mono mt-0.5 ${
               profile.star_delta > 0 
@@ -304,7 +304,7 @@ export default function Overlay() {
         return (
           <div key={key} className="flex-1 min-w-[130px] flex flex-col items-center justify-center p-2 rounded-sm bg-[#091326]/90 border border-[#c69848]/30 shadow-[inset_0_1px_0_rgba(255,229,143,0.1)]">
             <span className="text-[9.5px] tracking-wider text-[#d8b467] uppercase font-black flex items-center gap-1">
-              <Award className="w-3 h-3 text-[#38bdf8]" /> HISTORICAL
+              <Award className="w-3 h-3 text-[#38bdf8]" /> Highest Rank
             </span>
             <div className="text-xs font-black font-mono mt-0.5 flex items-center gap-1.5 flex-wrap justify-center text-center">
               {/* Full tier name without truncation */}
@@ -359,16 +359,17 @@ export default function Overlay() {
   return (
     <div className="p-3 inline-flex flex-col select-none font-sans bg-transparent w-[380px]">
       {/* 1. MATCH CARDS STRIP */}
+{/* 1. MATCH CARDS STRIP: Fixed compact size, never blows up when 1 match */}
       {displayAvatars.length > 0 && (
-        <div className="flex items-center gap-1.5 mb-2.5">
+        <div className="flex items-center gap-2 mb-2.5">
           {displayAvatars.map((match) => {
             const theme = getPlacementTheme(match.placement);
             const isFirst = match.placement === 1;
 
             return (
-              <div key={match.id} className="flex flex-col items-center flex-1">
+              <div key={match.id} className="flex flex-col items-center w-14 shrink-0">
                 <div
-                  className={`relative w-full aspect-[4/5] rounded-sm overflow-hidden bg-gradient-to-b from-[#0d182e] via-[#091224] to-[#040812] border-2 transition-all flex items-center justify-center ${theme.cardBorder}`}
+                  className={`relative w-14 h-18 rounded-sm overflow-hidden bg-gradient-to-b from-[#0d182e] via-[#091224] to-[#040812] border-2 transition-all flex items-center justify-center ${theme.cardBorder}`}
                 >
                   <img
                     src={match.commander.avatar}
