@@ -114,7 +114,7 @@ export default function Overlay() {
   });
 
   useEffect(() => {
-    async function loadData() {
+    async function loadMatches() {
       const { data: matchData } = await supabase
         .from('stream_matches')
         .select('*')
@@ -130,8 +130,12 @@ export default function Overlay() {
             commander: findCommander(m.commander_id) || MCGG_COMMANDERS[0],
           }))
         );
+      } else {
+        setMatches([]);
       }
+    }
 
+    async function loadProfile() {
       const { data: profileData } = await supabase
         .from('streamer_profiles')
         .select('*')
@@ -158,26 +162,22 @@ export default function Overlay() {
       }
     }
 
-    loadData();
+    loadMatches();
+    loadProfile();
 
+    // Listen for all match events (INSERT for additions, DELETE for session resets)
     const matchChannel = supabase
       .channel(`matches_${streamerId}`)
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
           table: 'stream_matches',
           filter: `streamer_id=eq.${streamerId}`,
         },
-        (payload) => {
-          const newRow = payload.new as { id: string; placement: number; commander_id: string };
-          const newRecord: MatchRecord = {
-            id: newRow.id,
-            placement: newRow.placement,
-            commander: findCommander(newRow.commander_id) || MCGG_COMMANDERS[0],
-          };
-          setMatches((prev) => [newRecord, ...prev].slice(0, 10));
+        () => {
+          loadMatches();
         }
       )
       .subscribe();
@@ -215,7 +215,6 @@ export default function Overlay() {
   const widgets = profile.enabled_widgets || {};
   const order = profile.widget_order || [];
 
-  // Renderer for each specific widget by key
   const renderWidget = (key: string) => {
     if (!widgets[key]) return null;
 
@@ -262,7 +261,7 @@ export default function Overlay() {
               <span className="text-[10px] tracking-widest text-amber-200 uppercase font-black drop-shadow">
                 CURRENT RANK
               </span>
-              <div className="flex items-baseline gap-2 mt-0.2">
+              <div className="flex items-baseline gap-2 mt-0.5">
                 <span className={`text-base font-black text-transparent bg-clip-text bg-gradient-to-r ${getRankColor(profile.rank_tier)} drop-shadow tracking-wide`}>
                   {profile.rank_tier.toUpperCase()} {profile.rank_division}
                 </span>
@@ -330,7 +329,7 @@ export default function Overlay() {
 
       case 'topCommanders':
         return (
-          <div key={key} className="relative z-10 flex flex-col items-center px-4 first:pl-0 border-l first:border-l-0 border-amber-500/20">
+          <div key={key} className="relative z-10 flex flex-col items-center px-4 first:pl-0 border-l border-r border-amber-500/20">
             <span className="text-[10px] tracking-widest text-amber-200 uppercase font-black drop-shadow mb-1">
               GO-TO
             </span>
@@ -358,55 +357,57 @@ export default function Overlay() {
   };
 
   return (
-    <div className="overlay-canvas p-4 inline-block select-none font-sans bg-transparent">
-      {/* 1. MATCH HISTORY STRIP */}
-      <div className="flex items-center gap-2 pb-2 min-h-[56px]">
-        {matches.slice(0, 8).map((match) => {
-          const theme = getPlacementTheme(match.placement);
-          const isFirst = match.placement === 1;
+    <div className="p-2 inline-flex flex-col select-none font-sans bg-transparent">
+      {/* 1. MATCH HISTORY STRIP (Renders only if matches exist) */}
+      {matches.length > 0 && (
+        <div className="flex items-center gap-2 pb-2">
+          {matches.slice(0, 8).map((match) => {
+            const theme = getPlacementTheme(match.placement);
+            const isFirst = match.placement === 1;
 
-          return (
-            <div key={match.id} className="flex flex-col items-center group relative">
-              <div
-                className={`relative w-11 h-12 rounded-sm overflow-hidden bg-gradient-to-b from-slate-900 via-[#0d1527] to-[#080d1a] border-2 transition-all duration-200 flex items-center justify-center ${theme.cardBorder}`}
-              >
-                <span className="absolute text-xs font-black text-amber-200/40 pointer-events-none tracking-widest">
-                  {match.commander.name.slice(0, 2).toUpperCase()}
-                </span>
+            return (
+              <div key={match.id} className="flex flex-col items-center group relative">
+                <div
+                  className={`relative w-11 h-12 rounded-sm overflow-hidden bg-gradient-to-b from-slate-900 via-[#0d1527] to-[#080d1a] border-2 transition-all duration-200 flex items-center justify-center ${theme.cardBorder}`}
+                >
+                  <span className="absolute text-xs font-black text-amber-200/40 pointer-events-none tracking-widest">
+                    {match.commander.name.slice(0, 2).toUpperCase()}
+                  </span>
 
-                <img
-                  src={match.commander.avatar}
-                  alt={match.commander.name}
-                  className="w-full h-full object-cover object-top z-10"
-                  loading="lazy"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none';
-                  }}
-                />
+                  <img
+                    src={match.commander.avatar}
+                    alt={match.commander.name}
+                    className="w-full h-full object-cover object-top z-10"
+                    loading="lazy"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
 
-                <div className={`absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 ${theme.cornerTrim} z-20 pointer-events-none`} />
+                  <div className={`absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 ${theme.cornerTrim} z-20 pointer-events-none`} />
 
-                {isFirst && (
-                  <div className="absolute top-0 right-0 bg-gradient-to-br from-amber-300 via-amber-500 to-yellow-600 text-slate-950 p-0.5 rounded-bl shadow-md z-20">
-                    <Crown className="w-2.5 h-2.5 drop-shadow" />
-                  </div>
-                )}
+                  {isFirst && (
+                    <div className="absolute top-0 right-0 bg-gradient-to-br from-amber-300 via-amber-500 to-yellow-600 text-slate-950 p-0.5 rounded-bl shadow-md z-20">
+                      <Crown className="w-2.5 h-2.5 drop-shadow" />
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-1 flex items-center justify-center">
+                  <span className={`text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-sm border ${theme.badge}`}>
+                    #{match.placement}
+                  </span>
+                </div>
+
+                <div className={`w-full h-1 mt-1 rounded-sm ${theme.bar}`} />
               </div>
-
-              <div className="mt-1 flex items-center justify-center">
-                <span className={`text-[10px] font-black uppercase tracking-wider px-1.5 py-0.2 rounded-sm border ${theme.badge}`}>
-                  #{match.placement}
-                </span>
-              </div>
-
-              <div className={`w-full h-1 mt-1 rounded-sm ${theme.bar}`} />
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* 2. REORDERABLE STATS BANNER */}
-      <div className="relative inline-flex items-center px-7 py-3.5 my-2 select-none">
+      <div className="relative inline-flex items-center px-6 py-3 select-none">
         <div 
           className="absolute inset-0 bg-gradient-to-r from-[#030712]/95 via-[#0a1633]/90 to-[#030712]/95 backdrop-blur-md shadow-[0_4px_35px_rgba(0,0,0,0.95)]"
           style={{
@@ -426,7 +427,6 @@ export default function Overlay() {
         <div className="absolute bottom-0 left-0 w-3.5 h-3.5 border-b-2 border-l-2 border-amber-300 drop-shadow-[0_0_6px_rgba(252,211,77,0.9)] pointer-events-none" />
         <div className="absolute bottom-0 right-0 w-3.5 h-3.5 border-b-2 border-r-2 border-amber-300 drop-shadow-[0_0_6px_rgba(252,211,77,0.9)] pointer-events-none" />
 
-        {/* Dynamically render elements in user's chosen arrangement */}
         <div className="relative z-10 flex items-center">
           {order.map((key) => renderWidget(key))}
         </div>
