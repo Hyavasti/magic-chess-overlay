@@ -5,10 +5,9 @@ html, body, #root {
   background: transparent !important;
   margin: 0;
   padding: 0;
-  overflow: hidden;
+  min-height: 100vh;
 }
 
-/* Only hide scrollbars if an overlay container requests it */
 .overlay-canvas {
   background: transparent !important;
   overflow: hidden !important;
