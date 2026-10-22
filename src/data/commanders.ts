@@ -306,13 +306,6 @@ export const MCGG_COMMANDERS: Commander[] = [
     avatar: `${BUCKET_URL}/alice.jpg`,
   },
   {
-    id: "abe",
-    name: "Abe",
-    title: "Kungfu Expert",
-    category: "Classic",
-    avatar: `${BUCKET_URL}/abe.jpg`,
-  },
-  {
     id: "alucard",
     name: "Alucard",
     title: "Commander Alucard",

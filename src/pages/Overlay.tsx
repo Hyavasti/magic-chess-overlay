@@ -30,58 +30,65 @@ function getPlacementTheme(placement: number) {
   switch (placement) {
     case 1:
       return {
-        cardBorder: 'border-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.55)]',
-        cornerTrim: 'border-amber-300',
-        badge: 'text-amber-300 border-amber-400/80 bg-amber-950/90',
-        bar: 'bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.8)]',
+        cardBorder: 'border-[#f6c042] shadow-[0_0_12px_rgba(246,192,66,0.65)]',
+        cornerTrim: 'border-[#ffe58f]',
+        badge: 'text-[#ffd768] border-[#f6c042]/90 bg-[#2b1b04]/90 shadow-[0_0_8px_rgba(246,192,66,0.5)]',
+        bar: 'bg-gradient-to-r from-[#d99018] via-[#ffd768] to-[#d99018] shadow-[0_0_6px_rgba(246,192,66,0.8)]',
       };
     case 2:
       return {
-        cardBorder: 'border-slate-300 shadow-[0_0_8px_rgba(203,213,225,0.45)]',
-        cornerTrim: 'border-slate-200',
-        badge: 'text-slate-200 border-slate-300/80 bg-slate-800/90',
-        bar: 'bg-slate-300',
+        cardBorder: 'border-[#94a3b8] shadow-[0_0_8px_rgba(148,163,184,0.45)]',
+        cornerTrim: 'border-[#cbd5e1]',
+        badge: 'text-[#e2e8f0] border-[#94a3b8]/80 bg-[#0f172a]/90',
+        bar: 'bg-gradient-to-r from-[#64748b] via-[#cbd5e1] to-[#64748b]',
       };
     case 3:
       return {
-        cardBorder: 'border-amber-700 shadow-[0_0_8px_rgba(180,83,9,0.45)]',
-        cornerTrim: 'border-amber-600',
-        badge: 'text-amber-400 border-amber-700/80 bg-stone-900/90',
-        bar: 'bg-amber-700',
+        cardBorder: 'border-[#b45309] shadow-[0_0_8px_rgba(180,83,9,0.45)]',
+        cornerTrim: 'border-[#d97706]',
+        badge: 'text-[#f59e0b] border-[#b45309]/80 bg-[#1c1208]/90',
+        bar: 'bg-gradient-to-r from-[#78350f] via-[#d97706] to-[#78350f]',
       };
     case 4:
       return {
-        cardBorder: 'border-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.45)]',
-        cornerTrim: 'border-emerald-300',
-        badge: 'text-emerald-300 border-emerald-500/80 bg-emerald-950/90',
-        bar: 'bg-emerald-500',
+        cardBorder: 'border-[#10b981] shadow-[0_0_8px_rgba(16,185,129,0.45)]',
+        cornerTrim: 'border-[#34d399]',
+        badge: 'text-[#6ee7b7] border-[#10b981]/80 bg-[#022c22]/90',
+        bar: 'bg-gradient-to-r from-[#047857] via-[#34d399] to-[#047857]',
       };
     default:
       return {
-        cardBorder: 'border-rose-900/80 opacity-80',
-        cornerTrim: 'border-rose-800',
-        badge: 'text-rose-300 border-rose-900/70 bg-rose-950/80',
-        bar: 'bg-rose-700',
+        cardBorder: 'border-[#881337]/80 opacity-80',
+        cornerTrim: 'border-[#be123c]',
+        badge: 'text-[#fda4af] border-[#881337]/70 bg-[#4c0519]/80',
+        bar: 'bg-gradient-to-r from-[#4c0519] via-[#e11d48] to-[#4c0519]',
       };
   }
 }
 
+// Authentic MLBB Rank Tier Gradients
 function getRankColor(tier: string) {
   switch (tier.toLowerCase()) {
     case 'mythical immortal':
-      return 'from-purple-300 via-pink-400 to-amber-300';
+      return 'from-[#f472b6] via-[#ec4899] to-[#fbbf24]';
     case 'mythical glory':
-      return 'from-amber-200 via-orange-400 to-yellow-300';
+      return 'from-[#fef08a] via-[#f59e0b] to-[#ea580c]';
     case 'mythical honor':
-      return 'from-sky-300 via-cyan-400 to-amber-300';
+      return 'from-[#7dd3fc] via-[#38bdf8] to-[#facc15]';
     case 'mythic':
-      return 'from-amber-200 via-yellow-300 to-amber-400';
+      return 'from-[#fde047] via-[#eab308] to-[#ca8a04]';
     case 'legend':
-      return 'from-orange-400 via-amber-300 to-yellow-500';
+      return 'from-[#fb923c] via-[#f59e0b] to-[#d97706]';
     case 'epic':
-      return 'from-teal-300 via-cyan-400 to-blue-500';
+      return 'from-[#67e8f9] via-[#06b6d4] to-[#2563eb]';
+    case 'grandmaster':
+      return 'from-[#fcd34d] to-[#b45309]';
+    case 'master':
+      return 'from-[#cbd5e1] to-[#64748b]';
+    case 'elite':
+      return 'from-[#93c5fd] to-[#3b82f6]';
     default:
-      return 'from-purple-300 to-amber-400';
+      return 'from-[#fed7aa] to-[#c2410c]';
   }
 }
 
@@ -203,22 +210,22 @@ export default function Overlay() {
     switch (key) {
       case 'currentRank':
         return (
-          <div key={key} className="w-full flex items-center justify-between px-3 py-2 rounded bg-gradient-to-r from-[#0a1630] to-[#070e1e] border border-amber-500/40 shadow-sm">
+          <div key={key} className="w-full flex items-center justify-between px-3 py-2 rounded-sm bg-gradient-to-r from-[#0d1e3d] via-[#09152b] to-[#0d1e3d] border border-[#c69848]/60 shadow-[inset_0_1px_0_rgba(255,229,143,0.2)]">
             <div className="flex items-center gap-2.5">
               <div className="relative w-7 h-7 flex items-center justify-center shrink-0">
-                <div className="absolute inset-0 bg-gradient-to-tr from-amber-600 to-amber-200 rotate-45 rounded-[2px]" />
-                <div className="absolute inset-[1px] bg-[#070e1e] rotate-45 rounded-[1px]" />
-                <Sparkles className="relative z-10 w-3.5 h-3.5 text-amber-300" />
+                <div className="absolute inset-0 bg-gradient-to-tr from-[#946c26] via-[#f7d672] to-[#c69848] rotate-45 rounded-[2px] shadow-[0_0_8px_rgba(247,214,114,0.4)]" />
+                <div className="absolute inset-[1.5px] bg-[#070e1c] rotate-45 rounded-[1px]" />
+                <Sparkles className="relative z-10 w-3.5 h-3.5 text-[#f5c842]" />
               </div>
               <div className="flex flex-col">
-                <span className="text-[8.5px] uppercase tracking-wider text-amber-300/80 font-black">CURRENT RANK</span>
-                <span className={`text-xs font-black uppercase tracking-tight text-transparent bg-clip-text bg-gradient-to-r ${getRankColor(profile.rank_tier)}`}>
+                <span className="text-[8.5px] uppercase tracking-widest text-[#d8b467] font-black drop-shadow">CURRENT RANK</span>
+                <span className={`text-[12px] font-black uppercase tracking-wide text-transparent bg-clip-text bg-gradient-to-r ${getRankColor(profile.rank_tier)} drop-shadow`}>
                   {profile.rank_tier} {profile.rank_division}
                 </span>
               </div>
             </div>
             {profile.rank_points > 0 && (
-              <span className="text-xs font-black text-amber-300 font-mono bg-amber-950/60 border border-amber-500/40 px-2 py-0.5 rounded">
+              <span className="text-xs font-black text-[#fde047] font-mono bg-[#1f1708] border border-[#c69848]/70 px-2 py-0.5 rounded shadow-[0_0_6px_rgba(245,200,66,0.3)]">
                 ⭐ {profile.rank_points}
               </span>
             )}
@@ -227,36 +234,42 @@ export default function Overlay() {
 
       case 'sessionRecord':
         return (
-          <div key={key} className="flex-1 min-w-[140px] flex flex-col items-center justify-center p-2 rounded bg-[#070e1e]/90 border border-amber-500/20">
+          <div key={key} className="flex-1 min-w-[130px] flex flex-col items-center justify-center p-2 rounded-sm bg-[#091326]/90 border border-[#c69848]/30 shadow-[inset_0_1px_0_rgba(255,229,143,0.1)]">
             <div className="flex items-center gap-1">
-              <Swords className="w-3.5 h-3.5 text-amber-400 drop-shadow" />
-              <span className="text-[9.5px] tracking-wider text-amber-200/90 uppercase font-black">RECORD</span>
+              <Swords className="w-3.5 h-3.5 text-[#f5c842] drop-shadow" />
+              <span className="text-[9.5px] tracking-wider text-[#d8b467] uppercase font-black">RECORD</span>
             </div>
             <div className="text-sm font-black font-mono mt-0.5">
-              <span className="text-emerald-400">{top4Count}W</span>
-              <span className="text-amber-500/40 mx-1">|</span>
-              <span className="text-rose-400">{bottom4Count}L</span>
+              <span className="text-[#34d399] drop-shadow-[0_0_8px_rgba(52,211,153,0.6)]">{top4Count}W</span>
+              <span className="text-[#c69848]/40 mx-1.5 font-sans">|</span>
+              <span className="text-[#f43f5e] drop-shadow-[0_0_8px_rgba(244,63,94,0.6)]">{bottom4Count}L</span>
             </div>
           </div>
         );
 
       case 'starDelta':
         return (
-          <div key={key} className="flex-1 min-w-[140px] flex flex-col items-center justify-center p-2 rounded bg-[#070e1e]/90 border border-amber-500/20">
-            <span className="text-[9.5px] tracking-wider text-amber-200/90 uppercase font-black flex items-center gap-1">
-              <Flame className="w-3 h-3 text-amber-400" /> SESSION ⭐
+          <div key={key} className="flex-1 min-w-[130px] flex flex-col items-center justify-center p-2 rounded-sm bg-[#091326]/90 border border-[#c69848]/30 shadow-[inset_0_1px_0_rgba(255,229,143,0.1)]">
+            <span className="text-[9.5px] tracking-wider text-[#d8b467] uppercase font-black flex items-center gap-1">
+              <Flame className="w-3 h-3 text-[#f5c842]" /> SESSION ⭐
             </span>
-            <span className={`text-sm font-black font-mono mt-0.5 ${profile.star_delta >= 0 ? 'text-amber-300 drop-shadow' : 'text-rose-400'}`}>
-              {profile.star_delta > 0 ? `+${profile.star_delta}` : profile.star_delta} ⭐
+            <span className={`text-sm font-black font-mono mt-0.5 ${
+              profile.star_delta > 0 
+                ? 'text-[#facc15] drop-shadow-[0_0_8px_rgba(250,204,21,0.6)]' 
+                : profile.star_delta < 0 
+                ? 'text-[#fb7185] drop-shadow-[0_0_8px_rgba(251,113,133,0.6)]' 
+                : 'text-slate-300'
+            }`}>
+              {profile.star_delta > 0 ? `+${profile.star_delta}` : profile.star_delta < 0 ? `${profile.star_delta}` : '±0'} ⭐
             </span>
           </div>
         );
 
       case 'winRate':
         return (
-          <div key={key} className="flex-1 min-w-[140px] flex flex-col items-center justify-center p-2 rounded bg-[#070e1e]/90 border border-amber-500/20">
-            <span className="text-[9.5px] tracking-wider text-amber-200/90 uppercase font-black">WIN RATE</span>
-            <span className="text-sm font-black text-emerald-400 font-mono mt-0.5">
+          <div key={key} className="flex-1 min-w-[130px] flex flex-col items-center justify-center p-2 rounded-sm bg-[#091326]/90 border border-[#c69848]/30 shadow-[inset_0_1px_0_rgba(255,229,143,0.1)]">
+            <span className="text-[9.5px] tracking-wider text-[#d8b467] uppercase font-black">WIN RATE</span>
+            <span className="text-sm font-black text-[#38bdf8] font-mono mt-0.5 drop-shadow-[0_0_8px_rgba(56,189,248,0.5)]">
               {profile.season_win_rate}%
             </span>
           </div>
@@ -264,11 +277,11 @@ export default function Overlay() {
 
       case 'championRate':
         return (
-          <div key={key} className="flex-1 min-w-[140px] flex flex-col items-center justify-center p-2 rounded bg-[#070e1e]/90 border border-amber-500/20">
-            <span className="text-[9.5px] tracking-wider text-amber-200/90 uppercase font-black flex items-center gap-1">
-              <Trophy className="w-3 h-3 text-amber-400" /> TOP 1 RATE
+          <div key={key} className="flex-1 min-w-[130px] flex flex-col items-center justify-center p-2 rounded-sm bg-[#091326]/90 border border-[#c69848]/30 shadow-[inset_0_1px_0_rgba(255,229,143,0.1)]">
+            <span className="text-[9.5px] tracking-wider text-[#d8b467] uppercase font-black flex items-center gap-1">
+              <Trophy className="w-3 h-3 text-[#f5c842]" /> TOP 1 RATE
             </span>
-            <span className="text-sm font-black text-amber-300 font-mono mt-0.5">
+            <span className="text-sm font-black text-[#fbbf24] font-mono mt-0.5 drop-shadow-[0_0_8px_rgba(251,191,36,0.6)]">
               {profile.champion_rate}%
             </span>
           </div>
@@ -276,12 +289,12 @@ export default function Overlay() {
 
       case 'avgRank':
         return (
-          <div key={key} className="flex-1 min-w-[140px] flex flex-col items-center justify-center p-2 rounded bg-[#070e1e]/90 border border-amber-500/20">
+          <div key={key} className="flex-1 min-w-[130px] flex flex-col items-center justify-center p-2 rounded-sm bg-[#091326]/90 border border-[#c69848]/30 shadow-[inset_0_1px_0_rgba(255,229,143,0.1)]">
             <div className="flex items-center gap-1">
-              <TrendingUp className="w-3 h-3 text-cyan-400" />
-              <span className="text-[9.5px] tracking-wider text-amber-200/90 uppercase font-black">AVG RANK</span>
+              <TrendingUp className="w-3 h-3 text-[#38bdf8]" />
+              <span className="text-[9.5px] tracking-wider text-[#d8b467] uppercase font-black">AVG RANK</span>
             </div>
-            <span className="text-sm font-black text-cyan-300 font-mono mt-0.5">
+            <span className="text-sm font-black text-[#7dd3fc] font-mono mt-0.5 drop-shadow-[0_0_8px_rgba(125,211,252,0.5)]">
               {profile.season_avg_rank}
             </span>
           </div>
@@ -289,21 +302,24 @@ export default function Overlay() {
 
       case 'historicalBest':
         return (
-          <div key={key} className="flex-1 min-w-[140px] flex flex-col items-center justify-center p-2 rounded bg-[#070e1e]/90 border border-amber-500/20">
-            <span className="text-[9.5px] tracking-wider text-cyan-300 uppercase font-black flex items-center gap-1">
-              <Award className="w-3 h-3 text-cyan-400" /> HISTORICAL
+          <div key={key} className="flex-1 min-w-[130px] flex flex-col items-center justify-center p-2 rounded-sm bg-[#091326]/90 border border-[#c69848]/30 shadow-[inset_0_1px_0_rgba(255,229,143,0.1)]">
+            <span className="text-[9.5px] tracking-wider text-[#d8b467] uppercase font-black flex items-center gap-1">
+              <Award className="w-3 h-3 text-[#38bdf8]" /> HISTORICAL
             </span>
-            <div className="text-xs font-black text-cyan-200 font-mono mt-0.5 flex items-center gap-1">
-              <span className="text-[10px]">{profile.historical_tier.slice(0, 8)}</span>
-              <span className="text-amber-300">⭐{profile.historical_stars}</span>
+            <div className="text-xs font-black font-mono mt-0.5 flex items-center gap-1.5 flex-wrap justify-center text-center">
+              {/* Full tier name without truncation */}
+              <span className={`text-[11px] font-black uppercase text-transparent bg-clip-text bg-gradient-to-r ${getRankColor(profile.historical_tier)}`}>
+                {profile.historical_tier}
+              </span>
+              <span className="text-[#fde047] font-bold">⭐ {profile.historical_stars}</span>
             </div>
           </div>
         );
 
       case 'topCommanders':
         return (
-          <div key={key} className="w-full flex items-center justify-between px-3 py-1.5 rounded bg-[#070e1e]/90 border border-amber-500/20">
-            <span className="text-[9px] tracking-wider text-amber-200/90 uppercase font-black">
+          <div key={key} className="w-full flex items-center justify-between px-3 py-1.5 rounded-sm bg-[#091326]/90 border border-[#c69848]/30">
+            <span className="text-[9px] tracking-wider text-[#d8b467] uppercase font-black">
               GO-TO COMMANDERS
             </span>
             <div className="flex items-center gap-2">
@@ -312,7 +328,7 @@ export default function Overlay() {
                 return (
                   <div
                     key={cmdId}
-                    className="w-7 h-7 rounded-full border border-amber-400/80 overflow-hidden bg-slate-900 flex items-center justify-center shadow-md relative"
+                    className="w-7 h-7 rounded-full border border-[#c69848] overflow-hidden bg-[#070e1c] flex items-center justify-center shadow-md relative"
                     title={cmd?.name || cmdId}
                   >
                     {cmd?.avatar ? (
@@ -325,7 +341,7 @@ export default function Overlay() {
                         }}
                       />
                     ) : null}
-                    <span className="absolute inset-0 flex items-center justify-center text-[9px] font-black text-amber-300 bg-slate-950">
+                    <span className="absolute inset-0 flex items-center justify-center text-[9px] font-black text-[#f5c842] bg-[#070e1c]">
                       {(cmd?.name || cmdId).slice(0, 2).toUpperCase()}
                     </span>
                   </div>
@@ -352,7 +368,7 @@ export default function Overlay() {
             return (
               <div key={match.id} className="flex flex-col items-center flex-1">
                 <div
-                  className={`relative w-full aspect-[4/5] rounded overflow-hidden bg-gradient-to-b from-slate-900 via-[#0d1527] to-[#080d1a] border-2 transition-all flex items-center justify-center ${theme.cardBorder}`}
+                  className={`relative w-full aspect-[4/5] rounded-sm overflow-hidden bg-gradient-to-b from-[#0d182e] via-[#091224] to-[#040812] border-2 transition-all flex items-center justify-center ${theme.cardBorder}`}
                 >
                   <img
                     src={match.commander.avatar}
@@ -363,20 +379,20 @@ export default function Overlay() {
                       (e.target as HTMLImageElement).style.display = 'none';
                     }}
                   />
-                  <span className="absolute text-xs font-black text-amber-200/40 pointer-events-none">
+                  <span className="absolute text-xs font-black text-[#d8b467]/40 pointer-events-none">
                     {match.commander.name.slice(0, 2).toUpperCase()}
                   </span>
 
                   <div className={`absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 ${theme.cornerTrim} z-20 pointer-events-none`} />
 
                   {isFirst && (
-                    <div className="absolute top-0 right-0 bg-gradient-to-br from-amber-300 to-yellow-600 text-slate-950 p-0.5 rounded-bl shadow-md z-20">
+                    <div className="absolute top-0 right-0 bg-gradient-to-br from-[#fde047] to-[#d97706] text-slate-950 p-0.5 rounded-bl shadow-md z-20">
                       <Crown className="w-3 h-3 drop-shadow" />
                     </div>
                   )}
                 </div>
 
-                <span className={`text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 mt-1 rounded border ${theme.badge}`}>
+                <span className={`text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 mt-1 rounded-sm border ${theme.badge}`}>
                   #{match.placement}
                 </span>
                 <div className={`w-full h-0.5 mt-0.5 rounded-full ${theme.bar}`} />
@@ -386,15 +402,16 @@ export default function Overlay() {
         </div>
       )}
 
-      {/* 2. ADAPTIVE AUTO-FLOW HUD PANEL: Auto-expands and fills all gaps */}
-      <div className="relative p-3 rounded-lg border-2 border-amber-500/50 bg-[#040814]/95 shadow-[0_8px_32px_rgba(0,0,0,0.9)] backdrop-blur-md">
-        {/* Glowing corner trim */}
-        <div className="absolute top-0 left-0 w-2.5 h-2.5 border-t-2 border-l-2 border-amber-300 pointer-events-none" />
-        <div className="absolute top-0 right-0 w-2.5 h-2.5 border-t-2 border-r-2 border-amber-300 pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-2.5 h-2.5 border-b-2 border-l-2 border-amber-300 pointer-events-none" />
-        <div className="absolute bottom-0 right-0 w-2.5 h-2.5 border-b-2 border-r-2 border-amber-300 pointer-events-none" />
+      {/* 2. AUTHENTIC MLBB THEMED SQUARE HUD PANEL */}
+      <div className="relative p-2.5 rounded-md border-2 border-[#c69848] bg-gradient-to-b from-[#081226]/98 via-[#060d1c]/98 to-[#03060d]/98 shadow-[0_10px_35px_rgba(0,0,0,0.95)] backdrop-blur-md">
+        {/* MLBB Ornate Corner Accents */}
+        <div className="absolute -top-[2px] -left-[2px] w-3 h-3 border-t-2 border-l-2 border-[#ffe58f] drop-shadow-[0_0_6px_rgba(255,229,143,0.8)] pointer-events-none" />
+        <div className="absolute -top-[2px] -right-[2px] w-3 h-3 border-t-2 border-r-2 border-[#ffe58f] drop-shadow-[0_0_6px_rgba(255,229,143,0.8)] pointer-events-none" />
+        <div className="absolute -bottom-[2px] -left-[2px] w-3 h-3 border-b-2 border-l-2 border-[#ffe58f] drop-shadow-[0_0_6px_rgba(255,229,143,0.8)] pointer-events-none" />
+        <div className="absolute -bottom-[2px] -right-[2px] w-3 h-3 border-b-2 border-r-2 border-[#ffe58f] drop-shadow-[0_0_6px_rgba(255,229,143,0.8)] pointer-events-none" />
 
-        <div className="flex flex-wrap gap-2">
+        {/* Adaptive Layout Container */}
+        <div className="flex flex-wrap gap-1.5">
           {order.map((key) => renderWidget(key))}
         </div>
       </div>
