@@ -177,10 +177,12 @@ export default function Dashboard() {
       const { error: delError } = await supabase
         .from('stream_matches')
         .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000');
+        .eq('streamer_id', streamerId);
 
       if (delError) {
-        console.error("Delete matches error:", delError);
+        console.error("Supabase delete failed:", delError);
+        alert(`Delete failed: ${delError.message}`);
+        return;
       }
 
       // Touch streamer_profiles to instantly trigger overlay re-fetch via Realtime
