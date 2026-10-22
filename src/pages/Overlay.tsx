@@ -30,30 +30,30 @@ function getPlacementTheme(placement: number) {
   switch (placement) {
     case 1:
       return {
-        cardBorder: 'border-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.6)]',
+        cardBorder: 'border-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.55)]',
         cornerTrim: 'border-amber-300',
-        badge: 'text-amber-300 border-amber-400/80 bg-amber-950/90 shadow-[0_0_8px_rgba(251,191,36,0.5)]',
-        bar: 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.8)]',
+        badge: 'text-amber-300 border-amber-400/80 bg-amber-950/90',
+        bar: 'bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.8)]',
       };
     case 2:
       return {
-        cardBorder: 'border-slate-300 shadow-[0_0_10px_rgba(203,213,225,0.45)]',
+        cardBorder: 'border-slate-300 shadow-[0_0_8px_rgba(203,213,225,0.45)]',
         cornerTrim: 'border-slate-200',
-        badge: 'text-slate-200 border-slate-300/80 bg-slate-800/90 shadow-[0_0_6px_rgba(203,213,225,0.3)]',
+        badge: 'text-slate-200 border-slate-300/80 bg-slate-800/90',
         bar: 'bg-slate-300',
       };
     case 3:
       return {
-        cardBorder: 'border-amber-700 shadow-[0_0_10px_rgba(180,83,9,0.45)]',
+        cardBorder: 'border-amber-700 shadow-[0_0_8px_rgba(180,83,9,0.45)]',
         cornerTrim: 'border-amber-600',
-        badge: 'text-amber-400 border-amber-700/80 bg-stone-900/90 shadow-[0_0_6px_rgba(180,83,9,0.3)]',
+        badge: 'text-amber-400 border-amber-700/80 bg-stone-900/90',
         bar: 'bg-amber-700',
       };
     case 4:
       return {
-        cardBorder: 'border-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.45)]',
+        cardBorder: 'border-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.45)]',
         cornerTrim: 'border-emerald-300',
-        badge: 'text-emerald-300 border-emerald-500/80 bg-emerald-950/90 shadow-[0_0_6px_rgba(16,185,129,0.4)]',
+        badge: 'text-emerald-300 border-emerald-500/80 bg-emerald-950/90',
         bar: 'bg-emerald-500',
       };
     default:
@@ -201,44 +201,17 @@ export default function Overlay() {
     if (!widgets[key]) return null;
 
     switch (key) {
-      case 'sessionRecord':
-        return (
-          <div key={key} className="flex flex-col items-center justify-center p-2 rounded bg-[#070e1e]/80 border border-amber-500/20">
-            <div className="flex items-center gap-1">
-              <Swords className="w-3.5 h-3.5 text-amber-400 drop-shadow" />
-              <span className="text-[10px] tracking-wider text-amber-200/90 uppercase font-black">RECORD</span>
-            </div>
-            <div className="text-sm font-black font-mono mt-0.5">
-              <span className="text-emerald-400">{top4Count}W</span>
-              <span className="text-amber-500/40 mx-1">|</span>
-              <span className="text-rose-400">{bottom4Count}L</span>
-            </div>
-          </div>
-        );
-
-      case 'starDelta':
-        return (
-          <div key={key} className="flex flex-col items-center justify-center p-2 rounded bg-[#070e1e]/80 border border-amber-500/20">
-            <span className="text-[10px] tracking-wider text-amber-200/90 uppercase font-black flex items-center gap-1">
-              <Flame className="w-3 h-3 text-amber-400" /> SESSION ⭐
-            </span>
-            <span className={`text-sm font-black font-mono mt-0.5 ${profile.star_delta >= 0 ? 'text-amber-300 drop-shadow' : 'text-rose-400'}`}>
-              {profile.star_delta > 0 ? `+${profile.star_delta}` : profile.star_delta} ⭐
-            </span>
-          </div>
-        );
-
       case 'currentRank':
         return (
-          <div key={key} className="col-span-2 flex items-center justify-between px-3 py-2 rounded bg-gradient-to-r from-[#0a1630] to-[#070e1e] border border-amber-500/40">
-            <div className="flex items-center gap-2">
-              <div className="relative w-8 h-8 flex items-center justify-center shrink-0">
+          <div key={key} className="w-full flex items-center justify-between px-3 py-2 rounded bg-gradient-to-r from-[#0a1630] to-[#070e1e] border border-amber-500/40 shadow-sm">
+            <div className="flex items-center gap-2.5">
+              <div className="relative w-7 h-7 flex items-center justify-center shrink-0">
                 <div className="absolute inset-0 bg-gradient-to-tr from-amber-600 to-amber-200 rotate-45 rounded-[2px]" />
-                <div className="absolute inset-[1.5px] bg-[#070e1e] rotate-45 rounded-[1px]" />
-                <Sparkles className="relative z-10 w-4 h-4 text-amber-300" />
+                <div className="absolute inset-[1px] bg-[#070e1e] rotate-45 rounded-[1px]" />
+                <Sparkles className="relative z-10 w-3.5 h-3.5 text-amber-300" />
               </div>
               <div className="flex flex-col">
-                <span className="text-[9px] uppercase tracking-wider text-amber-300/80 font-black">CURRENT RANK</span>
+                <span className="text-[8.5px] uppercase tracking-wider text-amber-300/80 font-black">CURRENT RANK</span>
                 <span className={`text-xs font-black uppercase tracking-tight text-transparent bg-clip-text bg-gradient-to-r ${getRankColor(profile.rank_tier)}`}>
                   {profile.rank_tier} {profile.rank_division}
                 </span>
@@ -252,23 +225,37 @@ export default function Overlay() {
           </div>
         );
 
-      case 'historicalBest':
+      case 'sessionRecord':
         return (
-          <div key={key} className="flex flex-col items-center justify-center p-2 rounded bg-[#070e1e]/80 border border-amber-500/20">
-            <span className="text-[10px] tracking-wider text-cyan-300 uppercase font-black flex items-center gap-1">
-              <Award className="w-3 h-3 text-cyan-400" /> BEST
-            </span>
-            <div className="text-xs font-black text-cyan-200 font-mono mt-0.5 flex items-center gap-1">
-              <span>{profile.historical_tier.slice(0, 8)}</span>
-              <span className="text-amber-300">⭐{profile.historical_stars}</span>
+          <div key={key} className="flex-1 min-w-[140px] flex flex-col items-center justify-center p-2 rounded bg-[#070e1e]/90 border border-amber-500/20">
+            <div className="flex items-center gap-1">
+              <Swords className="w-3.5 h-3.5 text-amber-400 drop-shadow" />
+              <span className="text-[9.5px] tracking-wider text-amber-200/90 uppercase font-black">RECORD</span>
             </div>
+            <div className="text-sm font-black font-mono mt-0.5">
+              <span className="text-emerald-400">{top4Count}W</span>
+              <span className="text-amber-500/40 mx-1">|</span>
+              <span className="text-rose-400">{bottom4Count}L</span>
+            </div>
+          </div>
+        );
+
+      case 'starDelta':
+        return (
+          <div key={key} className="flex-1 min-w-[140px] flex flex-col items-center justify-center p-2 rounded bg-[#070e1e]/90 border border-amber-500/20">
+            <span className="text-[9.5px] tracking-wider text-amber-200/90 uppercase font-black flex items-center gap-1">
+              <Flame className="w-3 h-3 text-amber-400" /> SESSION ⭐
+            </span>
+            <span className={`text-sm font-black font-mono mt-0.5 ${profile.star_delta >= 0 ? 'text-amber-300 drop-shadow' : 'text-rose-400'}`}>
+              {profile.star_delta > 0 ? `+${profile.star_delta}` : profile.star_delta} ⭐
+            </span>
           </div>
         );
 
       case 'winRate':
         return (
-          <div key={key} className="flex flex-col items-center justify-center p-2 rounded bg-[#070e1e]/80 border border-amber-500/20">
-            <span className="text-[10px] tracking-wider text-amber-200/90 uppercase font-black">WIN RATE</span>
+          <div key={key} className="flex-1 min-w-[140px] flex flex-col items-center justify-center p-2 rounded bg-[#070e1e]/90 border border-amber-500/20">
+            <span className="text-[9.5px] tracking-wider text-amber-200/90 uppercase font-black">WIN RATE</span>
             <span className="text-sm font-black text-emerald-400 font-mono mt-0.5">
               {profile.season_win_rate}%
             </span>
@@ -277,9 +264,9 @@ export default function Overlay() {
 
       case 'championRate':
         return (
-          <div key={key} className="flex flex-col items-center justify-center p-2 rounded bg-[#070e1e]/80 border border-amber-500/20">
-            <span className="text-[10px] tracking-wider text-amber-200/90 uppercase font-black flex items-center gap-1">
-              <Trophy className="w-3 h-3 text-amber-400" /> CHAMPION
+          <div key={key} className="flex-1 min-w-[140px] flex flex-col items-center justify-center p-2 rounded bg-[#070e1e]/90 border border-amber-500/20">
+            <span className="text-[9.5px] tracking-wider text-amber-200/90 uppercase font-black flex items-center gap-1">
+              <Trophy className="w-3 h-3 text-amber-400" /> TOP 1 RATE
             </span>
             <span className="text-sm font-black text-amber-300 font-mono mt-0.5">
               {profile.champion_rate}%
@@ -289,10 +276,10 @@ export default function Overlay() {
 
       case 'avgRank':
         return (
-          <div key={key} className="flex flex-col items-center justify-center p-2 rounded bg-[#070e1e]/80 border border-amber-500/20">
+          <div key={key} className="flex-1 min-w-[140px] flex flex-col items-center justify-center p-2 rounded bg-[#070e1e]/90 border border-amber-500/20">
             <div className="flex items-center gap-1">
-              <TrendingUp className="w-3.5 h-3.5 text-cyan-400" />
-              <span className="text-[10px] tracking-wider text-amber-200/90 uppercase font-black">AVG RANK</span>
+              <TrendingUp className="w-3 h-3 text-cyan-400" />
+              <span className="text-[9.5px] tracking-wider text-amber-200/90 uppercase font-black">AVG RANK</span>
             </div>
             <span className="text-sm font-black text-cyan-300 font-mono mt-0.5">
               {profile.season_avg_rank}
@@ -300,33 +287,47 @@ export default function Overlay() {
           </div>
         );
 
+      case 'historicalBest':
+        return (
+          <div key={key} className="flex-1 min-w-[140px] flex flex-col items-center justify-center p-2 rounded bg-[#070e1e]/90 border border-amber-500/20">
+            <span className="text-[9.5px] tracking-wider text-cyan-300 uppercase font-black flex items-center gap-1">
+              <Award className="w-3 h-3 text-cyan-400" /> HISTORICAL
+            </span>
+            <div className="text-xs font-black text-cyan-200 font-mono mt-0.5 flex items-center gap-1">
+              <span className="text-[10px]">{profile.historical_tier.slice(0, 8)}</span>
+              <span className="text-amber-300">⭐{profile.historical_stars}</span>
+            </div>
+          </div>
+        );
+
       case 'topCommanders':
         return (
-          <div key={key} className="flex flex-col items-center justify-center p-2 rounded bg-[#070e1e]/80 border border-amber-500/20">
-            <span className="text-[10px] tracking-wider text-amber-200/90 uppercase font-black mb-1">GO-TO</span>
-            <div className="flex items-center gap-1.5">
+          <div key={key} className="w-full flex items-center justify-between px-3 py-1.5 rounded bg-[#070e1e]/90 border border-amber-500/20">
+            <span className="text-[9px] tracking-wider text-amber-200/90 uppercase font-black">
+              GO-TO COMMANDERS
+            </span>
+            <div className="flex items-center gap-2">
               {(profile.top_commanders || []).slice(0, 3).map((cmdId) => {
                 const cmd = findCommander(cmdId);
                 return (
                   <div
                     key={cmdId}
-                    className="w-6 h-6 rounded-full border border-amber-400/80 overflow-hidden bg-slate-900 flex items-center justify-center shadow-md"
+                    className="w-7 h-7 rounded-full border border-amber-400/80 overflow-hidden bg-slate-900 flex items-center justify-center shadow-md relative"
                     title={cmd?.name || cmdId}
                   >
                     {cmd?.avatar ? (
                       <img
                         src={cmd.avatar}
                         alt={cmd.name}
-                        className="w-full h-full object-cover object-top"
+                        className="w-full h-full object-cover object-top z-10"
                         onError={(e) => {
                           (e.target as HTMLImageElement).style.display = 'none';
                         }}
                       />
-                    ) : (
-                      <span className="text-[8px] font-black text-amber-300">
-                        {cmdId.slice(0, 2).toUpperCase()}
-                      </span>
-                    )}
+                    ) : null}
+                    <span className="absolute inset-0 flex items-center justify-center text-[9px] font-black text-amber-300 bg-slate-950">
+                      {(cmd?.name || cmdId).slice(0, 2).toUpperCase()}
+                    </span>
                   </div>
                 );
               })}
@@ -340,10 +341,10 @@ export default function Overlay() {
   };
 
   return (
-    <div className="p-3 inline-flex flex-col select-none font-sans bg-transparent max-w-[440px]">
-      {/* 1. MATCH CARDS: Larger, clear commander avatars */}
+    <div className="p-3 inline-flex flex-col select-none font-sans bg-transparent w-[380px]">
+      {/* 1. MATCH CARDS STRIP */}
       {displayAvatars.length > 0 && (
-        <div className="flex items-center gap-2 mb-2">
+        <div className="flex items-center gap-1.5 mb-2.5">
           {displayAvatars.map((match) => {
             const theme = getPlacementTheme(match.placement);
             const isFirst = match.placement === 1;
@@ -351,7 +352,7 @@ export default function Overlay() {
             return (
               <div key={match.id} className="flex flex-col items-center flex-1">
                 <div
-                  className={`relative w-full aspect-[4/5] min-w-[54px] max-w-[68px] rounded overflow-hidden bg-gradient-to-b from-slate-900 via-[#0d1527] to-[#080d1a] border-2 transition-all flex items-center justify-center ${theme.cardBorder}`}
+                  className={`relative w-full aspect-[4/5] rounded overflow-hidden bg-gradient-to-b from-slate-900 via-[#0d1527] to-[#080d1a] border-2 transition-all flex items-center justify-center ${theme.cardBorder}`}
                 >
                   <img
                     src={match.commander.avatar}
@@ -369,31 +370,31 @@ export default function Overlay() {
                   <div className={`absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 ${theme.cornerTrim} z-20 pointer-events-none`} />
 
                   {isFirst && (
-                    <div className="absolute top-0 right-0 bg-gradient-to-br from-amber-300 to-yellow-600 text-slate-950 p-1 rounded-bl shadow-md z-20">
+                    <div className="absolute top-0 right-0 bg-gradient-to-br from-amber-300 to-yellow-600 text-slate-950 p-0.5 rounded-bl shadow-md z-20">
                       <Crown className="w-3 h-3 drop-shadow" />
                     </div>
                   )}
                 </div>
 
-                <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 mt-1 rounded border ${theme.badge}`}>
+                <span className={`text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 mt-1 rounded border ${theme.badge}`}>
                   #{match.placement}
                 </span>
-                <div className={`w-full h-1 mt-1 rounded-full ${theme.bar}`} />
+                <div className={`w-full h-0.5 mt-0.5 rounded-full ${theme.bar}`} />
               </div>
             );
           })}
         </div>
       )}
 
-      {/* 2. ESPORTS SQUARE HUD PANEL: 2-Column modular grid instead of a long bar */}
+      {/* 2. ADAPTIVE AUTO-FLOW HUD PANEL: Auto-expands and fills all gaps */}
       <div className="relative p-3 rounded-lg border-2 border-amber-500/50 bg-[#040814]/95 shadow-[0_8px_32px_rgba(0,0,0,0.9)] backdrop-blur-md">
         {/* Glowing corner trim */}
-        <div className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-amber-300 pointer-events-none" />
-        <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-amber-300 pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-amber-300 pointer-events-none" />
-        <div className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-amber-300 pointer-events-none" />
+        <div className="absolute top-0 left-0 w-2.5 h-2.5 border-t-2 border-l-2 border-amber-300 pointer-events-none" />
+        <div className="absolute top-0 right-0 w-2.5 h-2.5 border-t-2 border-r-2 border-amber-300 pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-2.5 h-2.5 border-b-2 border-l-2 border-amber-300 pointer-events-none" />
+        <div className="absolute bottom-0 right-0 w-2.5 h-2.5 border-b-2 border-r-2 border-amber-300 pointer-events-none" />
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className="flex flex-wrap gap-2">
           {order.map((key) => renderWidget(key))}
         </div>
       </div>
