@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   PlusCircle, 
   RotateCcw, 
-  Award, 
   Copy, 
   ExternalLink, 
   Check, 
@@ -15,9 +14,7 @@ import {
   Star,
   Volume2,
   VolumeX,
-  TrendingUp,
   Trophy,
-  History,
   QrCode,
   X
 } from 'lucide-react';
