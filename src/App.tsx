@@ -1,23 +1,41 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import Overlay from './pages/Overlay';
+import { useEffect, useState } from 'react';
+import { supabase } from './supabase';
 import Dashboard from './pages/Dashboard';
+import Auth from './pages/Auth';
+import Overlay from './pages/Overlay';
 
 export default function App() {
-  return (
-    <BrowserRouter>
-      <Routes>
-        {/* 1. Clean, transparent OBS Browser Source (No buttons or inputs) */}
-        <Route path="/overlay/:streamerId" element={<Overlay />} />
-        
-        {/* Default fallback for /overlay without an ID */}
-        <Route path="/overlay" element={<Navigate to="/overlay/default_streamer" replace />} />
+  const [session, setSession] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-        {/* 2. Streamer Control Panel (Match Logger & Rank Editor) */}
-        <Route path="/dashboard" element={<Dashboard />} />
+  // If you are using React Router, keep your routes. 
+  // If you are routing via pathname:
+  const isOverlay = window.location.pathname.startsWith('/overlay');
 
-        {/* Redirect root '/' to dashboard */}
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
-      </Routes>
-    </BrowserRouter>
-  );
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setLoading(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  if (isOverlay) {
+    return <Overlay />;
+  }
+
+  if (loading) {
+    return <div className="min-h-screen bg-[#06080F] flex items-center justify-center text-amber-400 font-mono text-sm">Loading studio...</div>;
+  }
+
+  if (!session) {
+    return <Auth onAuthSuccess={() => {}} />;
+  }
+
+  return <Dashboard />;
 }

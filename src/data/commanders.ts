@@ -22,11 +22,11 @@ export const MCGG_COMMANDERS: Commander[] = [
     avatar: `${BUCKET_URL}/chou.jpg`,
   },
    {
-    id: "bordy",
-    name: "Bordy",
+    id: "brody",
+    name: "Brody",
     title: "The Lone Star",
     category: "Hero",
-    avatar: `${BUCKET_URL}/bordy.jpg`,
+    avatar: `${BUCKET_URL}/brody.jpg`,
   },
   {
     id: "paquito",
@@ -211,11 +211,11 @@ export const MCGG_COMMANDERS: Commander[] = [
     avatar: `${BUCKET_URL}/lukas.jpg`,
   },
     {
-    id: "kalea",
+    id: "kaleaa",
     name: "Kalea",
     title: "Jolly Sprite",
     category: "Classic",
-    avatar: `${BUCKET_URL}/kalea.jpg`,
+    avatar: `${BUCKET_URL}/kaleaa.jpg`,
   },
 
   // ==========================================

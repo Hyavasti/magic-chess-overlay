@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { 
   Crown, 
@@ -35,15 +35,15 @@ interface ProfileData {
 }
 
 const DEFAULT_PROFILE: ProfileData = {
-  rank_tier: 'Mythical Honor',
-  rank_division: '',
-  rank_points: 138,
-  historical_tier: 'Mythical Honor',
-  historical_stars: 145,
-  total_matches: 166,
-  season_win_rate: 71.69,
-  champion_rate: 30.72,
-  season_avg_rank: 3.34,
+  rank_tier: 'Warrior',
+  rank_division: 'III',
+  rank_points: 0,
+  historical_tier: 'Warrior',
+  historical_stars: 0,
+  total_matches: 0,
+  season_win_rate: 0,
+  champion_rate: 0,
+  season_avg_rank: 0,
   star_delta: 0,
   top_commanders: ['chou', 'fanny', 'layla'],
   enabled_widgets: {
@@ -146,16 +146,29 @@ function parseJSONField<T>(field: unknown, fallback: T): T {
 }
 
 export default function Overlay() {
-  const { streamerId = 'default_streamer' } = useParams();
+  const params = useParams();
+  
+  // Resolve streamerId either from React Router params or directly from pathname (/overlay/:id)
+  const resolvedStreamerId = useMemo(() => {
+    if (params?.streamerId) return params.streamerId;
+    const parts = window.location.pathname.split('/').filter(Boolean);
+    const overlayIndex = parts.indexOf('overlay');
+    if (overlayIndex !== -1 && parts[overlayIndex + 1]) {
+      return parts[overlayIndex + 1];
+    }
+    return 'default_streamer';
+  }, [params]);
+
   const [allSessionMatches, setAllSessionMatches] = useState<MatchRecord[]>([]);
   const [profile, setProfile] = useState<ProfileData>(DEFAULT_PROFILE);
 
   const loadMatches = useCallback(async () => {
+    if (!resolvedStreamerId) return;
     try {
       const { data: matchData, error } = await supabase
         .from('stream_matches')
         .select('*')
-        .eq('streamer_id', streamerId)
+        .eq('streamer_id', resolvedStreamerId)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -177,18 +190,19 @@ export default function Overlay() {
     } catch (err) {
       console.error('[Overlay] Network error fetching matches:', err);
     }
-  }, [streamerId]);
+  }, [resolvedStreamerId]);
 
   const loadProfile = useCallback(async () => {
+    if (!resolvedStreamerId) return;
     try {
       const { data: profileData, error } = await supabase
         .from('streamer_profiles')
         .select('*')
-        .eq('streamer_id', streamerId)
-        .single();
+        .eq('streamer_id', resolvedStreamerId)
+        .maybeSingle();
 
       if (error) {
-        console.warn('[Overlay] Profile not found or error loading profile:', error.message);
+        console.warn('[Overlay] Error loading profile:', error.message);
         return;
       }
 
@@ -210,14 +224,14 @@ export default function Overlay() {
           ...prev,
           rank_tier: profileData.rank_tier || prev.rank_tier,
           rank_division: profileData.rank_division || '',
-          rank_points: profileData.rank_points ?? prev.rank_points,
+          rank_points: profileData.rank_points != null ? Number(profileData.rank_points) : prev.rank_points,
           historical_tier: profileData.historical_tier || prev.historical_tier,
-          historical_stars: profileData.historical_stars ?? prev.historical_stars,
-          total_matches: profileData.total_matches ?? prev.total_matches,
-          season_win_rate: profileData.season_win_rate ?? prev.season_win_rate,
-          champion_rate: profileData.champion_rate ?? prev.champion_rate,
-          season_avg_rank: profileData.season_avg_rank ?? prev.season_avg_rank,
-          star_delta: profileData.star_delta ?? prev.star_delta,
+          historical_stars: profileData.historical_stars != null ? Number(profileData.historical_stars) : prev.historical_stars,
+          total_matches: profileData.total_matches != null ? Number(profileData.total_matches) : prev.total_matches,
+          season_win_rate: profileData.season_win_rate != null ? Number(profileData.season_win_rate) : prev.season_win_rate,
+          champion_rate: profileData.champion_rate != null ? Number(profileData.champion_rate) : prev.champion_rate,
+          season_avg_rank: profileData.season_avg_rank != null ? Number(profileData.season_avg_rank) : prev.season_avg_rank,
+          star_delta: profileData.star_delta != null ? Number(profileData.star_delta) : prev.star_delta,
           top_commanders: parsedCommanders && parsedCommanders.length > 0 ? parsedCommanders : prev.top_commanders,
           enabled_widgets: parsedWidgets,
           widget_order: parsedOrder,
@@ -226,21 +240,23 @@ export default function Overlay() {
     } catch (err) {
       console.error('[Overlay] Network error fetching profile:', err);
     }
-  }, [streamerId]);
+  }, [resolvedStreamerId]);
 
   useEffect(() => {
     loadMatches();
     loadProfile();
 
+    // Sanitize channel name for safe Supabase broadcast
+    const sanitizedId = resolvedStreamerId.replace(/[^a-zA-Z0-9_-]/g, '_');
     const channel = supabase
-      .channel(`overlay_sync_${streamerId}`)
+      .channel(`overlay_streamer_${sanitizedId}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'streamer_profiles',
-          filter: `streamer_id=eq.${streamerId}`,
+          filter: `streamer_id=eq.${resolvedStreamerId}`,
         },
         (payload) => {
           if (payload.new && typeof payload.new === 'object') {
@@ -262,14 +278,14 @@ export default function Overlay() {
               ...prev,
               rank_tier: (raw.rank_tier as string) ?? prev.rank_tier,
               rank_division: (raw.rank_division as string) ?? prev.rank_division,
-              rank_points: (raw.rank_points as number) ?? prev.rank_points,
+              rank_points: raw.rank_points != null ? Number(raw.rank_points) : prev.rank_points,
               historical_tier: (raw.historical_tier as string) ?? prev.historical_tier,
-              historical_stars: (raw.historical_stars as number) ?? prev.historical_stars,
-              total_matches: (raw.total_matches as number) ?? prev.total_matches,
-              season_win_rate: (raw.season_win_rate as number) ?? prev.season_win_rate,
-              champion_rate: (raw.champion_rate as number) ?? prev.champion_rate,
-              season_avg_rank: (raw.season_avg_rank as number) ?? prev.season_avg_rank,
-              star_delta: (raw.star_delta as number) ?? prev.star_delta,
+              historical_stars: raw.historical_stars != null ? Number(raw.historical_stars) : prev.historical_stars,
+              total_matches: raw.total_matches != null ? Number(raw.total_matches) : prev.total_matches,
+              season_win_rate: raw.season_win_rate != null ? Number(raw.season_win_rate) : prev.season_win_rate,
+              champion_rate: raw.champion_rate != null ? Number(raw.champion_rate) : prev.champion_rate,
+              season_avg_rank: raw.season_avg_rank != null ? Number(raw.season_avg_rank) : prev.season_avg_rank,
+              star_delta: raw.star_delta != null ? Number(raw.star_delta) : prev.star_delta,
               top_commanders: newTopCmds || prev.top_commanders,
               enabled_widgets: newWidgets,
               widget_order: newOrder,
@@ -277,7 +293,6 @@ export default function Overlay() {
           } else {
             loadProfile();
           }
-          // Reload matches whenever streamer_profiles triggers (resolves zero-DB session clear desync)
           loadMatches();
         }
       )
@@ -287,7 +302,7 @@ export default function Overlay() {
           event: '*',
           schema: 'public',
           table: 'stream_matches',
-          filter: `streamer_id=eq.${streamerId}`,
+          filter: `streamer_id=eq.${resolvedStreamerId}`,
         },
         () => {
           loadMatches();
@@ -295,14 +310,14 @@ export default function Overlay() {
       )
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
-          console.log('[Overlay] Realtime connected for streamer:', streamerId);
+          console.log('[Overlay] Realtime synchronized for:', resolvedStreamerId);
         }
       });
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [streamerId, loadMatches, loadProfile]);
+  }, [resolvedStreamerId, loadMatches, loadProfile]);
 
   const top4Count = allSessionMatches.filter((m) => m.placement <= 4).length;
   const bottom4Count = allSessionMatches.length - top4Count;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
   PlusCircle, 
   RotateCcw, 
@@ -16,6 +16,7 @@ import {
   VolumeX,
   Trophy,
   QrCode,
+  LogOut,
   X
 } from 'lucide-react';
 import { MCGG_COMMANDERS, findCommander, type Commander } from '../data/commanders';
@@ -52,6 +53,19 @@ const STAR_MAP: Record<number, number> = {
   1: 4, 2: 3, 3: 2, 4: 1, 5: -1, 6: -2, 7: -3, 8: -4,
 };
 
+const RANK_TIERS = [
+  'Warrior',
+  'Elite',
+  'Master',
+  'Grandmaster',
+  'Epic',
+  'Legend',
+  'Mythic',
+  'Mythical Honor',
+  'Mythical Glory',
+  'Mythical Immortal',
+];
+
 function parseJSONField<T>(field: unknown, fallback: T): T {
   if (!field) return fallback;
   if (typeof field === 'string') {
@@ -65,9 +79,14 @@ function parseJSONField<T>(field: unknown, fallback: T): T {
 }
 
 export default function Dashboard() {
-  const [streamerId] = useState<string>('default_streamer');
+  const [streamerId, setStreamerId] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string>('');
+  const [loadingUser, setLoadingUser] = useState<boolean>(true);
+
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'Hero' | 'Classic'>('all');
-  const [selectedCommanderId, setSelectedCommanderId] = useState<string>('chou');
+  
+  // No default commander selected
+  const [selectedCommanderId, setSelectedCommanderId] = useState<string | null>(null);
   const [selectedPlacement, setSelectedPlacement] = useState<number>(1);
   const [copied, setCopied] = useState<boolean>(false);
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
@@ -80,17 +99,17 @@ export default function Dashboard() {
   const [gotoSearch, setGotoSearch] = useState<string>('');
 
   const [profile, setProfile] = useState<ProfileState>({
-    rank_tier: 'Mythical Honor',
-    rank_division: '',
-    rank_points: 138,
-    historical_tier: 'Mythical Honor',
-    historical_stars: 145,
-    total_matches: 166,
-    season_win_rate: 71.69,
-    champion_rate: 30.72,
-    season_avg_rank: 3.34,
+    rank_tier: 'Warrior',
+    rank_division: 'III',
+    rank_points: 0,
+    historical_tier: 'Warrior',
+    historical_stars: 0,
+    total_matches: 0,
+    season_win_rate: 0,
+    champion_rate: 0,
+    season_avg_rank: 0,
     star_delta: 0,
-    top_commanders: ['chou', 'fanny', 'layla'],
+    top_commanders: [],
     enabled_widgets: {
       sessionRecord: true,
       currentRank: true,
@@ -151,22 +170,37 @@ export default function Dashboard() {
         osc.stop(now + 0.3);
       }
     } catch {
-      // AudioContext failure fallback
+      // AudioContext fallback
     }
   };
 
+  // Load user session and corresponding isolated profile
   useEffect(() => {
-    async function loadRank() {
+    async function initUserAndLoadRank() {
       try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError || !session?.user) {
+          setLoadingUser(false);
+          return;
+        }
+
+        // Clean username extraction
+        const rawEmail = session.user.email || '';
+        const parsedUsername = rawEmail.split('@')[0] || session.user.id;
+
+        setUserEmail(parsedUsername);
+        setStreamerId(parsedUsername);
+
+        // Fetch profile using clean username
         const { data, error } = await supabase
           .from('streamer_profiles')
           .select('*')
-          .eq('streamer_id', streamerId)
+          .eq('streamer_id', parsedUsername)
           .maybeSingle();
 
         if (error) {
           console.error('[Dashboard] Error fetching profile:', error);
-          return;
         }
 
         if (data) {
@@ -187,17 +221,15 @@ export default function Dashboard() {
             ...prev,
             rank_tier: typeof data.rank_tier === 'string' ? data.rank_tier : prev.rank_tier,
             rank_division: typeof data.rank_division === 'string' ? data.rank_division : prev.rank_division,
-            rank_points: data.rank_points !== null && data.rank_points !== undefined ? Number(data.rank_points) : prev.rank_points,
+            rank_points: data.rank_points != null ? Number(data.rank_points) : prev.rank_points,
             historical_tier: typeof data.historical_tier === 'string' ? data.historical_tier : prev.historical_tier,
-            historical_stars: data.historical_stars !== null && data.historical_stars !== undefined ? Number(data.historical_stars) : prev.historical_stars,
-            total_matches: data.total_matches !== null && data.total_matches !== undefined ? Number(data.total_matches) : prev.total_matches,
-            season_win_rate: data.season_win_rate !== null && data.season_win_rate !== undefined ? Number(data.season_win_rate) : prev.season_win_rate,
-            champion_rate: data.champion_rate !== null && data.champion_rate !== undefined ? Number(data.champion_rate) : prev.champion_rate,
-            season_avg_rank: data.season_avg_rank !== null && data.season_avg_rank !== undefined ? Number(data.season_avg_rank) : prev.season_avg_rank,
-            star_delta: data.star_delta !== null && data.star_delta !== undefined ? Number(data.star_delta) : prev.star_delta,
-            top_commanders: Array.isArray(parsedCommanders) && parsedCommanders.length > 0
-              ? parsedCommanders
-              : prev.top_commanders,
+            historical_stars: data.historical_stars != null ? Number(data.historical_stars) : prev.historical_stars,
+            total_matches: data.total_matches != null ? Number(data.total_matches) : prev.total_matches,
+            season_win_rate: data.season_win_rate != null ? Number(data.season_win_rate) : prev.season_win_rate,
+            champion_rate: data.champion_rate != null ? Number(data.champion_rate) : prev.champion_rate,
+            season_avg_rank: data.season_avg_rank != null ? Number(data.season_avg_rank) : prev.season_avg_rank,
+            star_delta: data.star_delta != null ? Number(data.star_delta) : prev.star_delta,
+            top_commanders: Array.isArray(parsedCommanders) ? parsedCommanders : prev.top_commanders,
             enabled_widgets: parsedWidgets,
             widget_order: Array.isArray(parsedOrder) && parsedOrder.length > 0
               ? parsedOrder
@@ -205,27 +237,32 @@ export default function Dashboard() {
           }));
         }
       } catch (err) {
-        console.error('[Dashboard] Network error loading profile:', err);
+        console.error('[Dashboard] Network error during initialization:', err);
+      } finally {
+        setLoadingUser(false);
       }
     }
-    loadRank();
-  }, [streamerId]);
 
-  const overlayUrl = `${window.location.origin}/overlay/${streamerId}`;
+    initUserAndLoadRank();
+  }, []);
+
+  const overlayUrl = streamerId ? `${window.location.origin}/overlay/${streamerId}` : '';
 
   const copyUrl = () => {
+    if (!overlayUrl) return;
     navigator.clipboard.writeText(overlayUrl);
     setCopied(true);
     playFeedbackSound('click');
-    showToast('Overlay URL copied to clipboard!');
+    showToast('Personal overlay URL copied!');
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const updateProfileInSupabase = async (updated: Partial<ProfileState>) => {
+  const updateProfileInSupabase = useCallback(async (updated: Partial<ProfileState>) => {
+    if (!streamerId) return;
+
     const next: ProfileState = { ...profile, ...updated };
     setProfile(next);
 
-    // Save only strictly recognized database columns to avoid schema cache errors
     const payloadToSave = {
       streamer_id: streamerId,
       rank_tier: next.rank_tier,
@@ -253,9 +290,19 @@ export default function Dashboard() {
         console.error('[Dashboard] Supabase save error:', error.message);
         showToast(`Save Error: ${error.message}`, 'error');
       }
-    } catch (err: unknown) {
+    } catch (err) {
       console.error('[Dashboard] Exception saving profile:', err);
-      showToast(`Network error saving profile`, 'error');
+      showToast('Network error saving profile', 'error');
+    }
+  }, [streamerId, profile]);
+
+  // Helper for number inputs so typing replaces 0 cleanly
+  const handleNumericInput = (field: keyof ProfileState, rawValue: string) => {
+    if (rawValue === '') {
+      updateProfileInSupabase({ [field]: 0 });
+    } else {
+      const val = parseFloat(rawValue);
+      updateProfileInSupabase({ [field]: isNaN(val) ? 0 : val });
     }
   };
 
@@ -297,6 +344,13 @@ export default function Dashboard() {
 
   const handleAddMatch = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!streamerId) return;
+
+    if (!selectedCommanderId) {
+      showToast('Please select a commander first!', 'error');
+      return;
+    }
+
     const cmd = findCommander(selectedCommanderId);
     if (!cmd) return;
 
@@ -326,35 +380,35 @@ export default function Dashboard() {
     }
   };
 
-const handleResetSession = async () => {
-  const confirmed = window.confirm(
-    "Reset Stream Session?\n\n• Wipes all logged match cards\n• Resets session Star Delta to 0\n• Record resets to 0W 0L"
-  );
-  if (!confirmed) return;
+  const handleResetSession = async () => {
+    if (!streamerId) return;
+    const confirmed = window.confirm(
+      "Reset Stream Session?\n\n• Wipes all your logged match cards\n• Resets session Star Delta to 0\n• Record resets to 0W 0L"
+    );
+    if (!confirmed) return;
 
-  setLoadingAction('session');
-  try {
-    // 1. Delete the matches
-    await supabase
-      .from('stream_matches')
-      .delete()
-      .eq('streamer_id', streamerId);
+    setLoadingAction('session');
+    try {
+      await supabase
+        .from('stream_matches')
+        .delete()
+        .eq('streamer_id', streamerId);
 
-    // 2. Updating streamer_profiles triggers the Realtime listener on the Overlay
-    await updateProfileInSupabase({
-      star_delta: 0,
-    });
+      await updateProfileInSupabase({
+        star_delta: 0,
+      });
 
-    showToast("Stream session reset successfully!");
-  } catch (err) {
-    console.error(err);
-    showToast("Failed to reset session.", 'error');
-  } finally {
-    setLoadingAction(null);
-  }
-};
+      showToast("Stream session reset successfully!");
+    } catch (err) {
+      console.error(err);
+      showToast("Failed to reset session.", 'error');
+    } finally {
+      setLoadingAction(null);
+    }
+  };
 
   const handleResetRank = async () => {
+    if (!streamerId) return;
     const confirmed = window.confirm("Reset season rank to Warrior III with 0 stars?");
     if (!confirmed) return;
 
@@ -375,21 +429,38 @@ const handleResetSession = async () => {
     }
   };
 
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+  };
+
+  // Alphabetically sorted commanders
   const filteredCommanders = useMemo(() => {
-    return MCGG_COMMANDERS.filter((c) => {
-      const matchesCategory = selectedCategory === 'all' || c.category === selectedCategory;
-      const matchesQuery = c.name.toLowerCase().includes(matchSearch.toLowerCase());
-      return matchesCategory && matchesQuery;
-    });
+    return MCGG_COMMANDERS
+      .filter((c) => {
+        const matchesCategory = selectedCategory === 'all' || c.category === selectedCategory;
+        const matchesQuery = c.name.toLowerCase().includes(matchSearch.toLowerCase());
+        return matchesCategory && matchesQuery;
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
   }, [selectedCategory, matchSearch]);
 
   const gotoFilteredCommanders = useMemo(() => {
-    return MCGG_COMMANDERS.filter((c) =>
-      c.name.toLowerCase().includes(gotoSearch.toLowerCase())
-    );
+    return MCGG_COMMANDERS
+      .filter((c) => c.name.toLowerCase().includes(gotoSearch.toLowerCase()))
+      .sort((a, b) => a.name.localeCompare(b.name));
   }, [gotoSearch]);
 
-  const activeCommander: Commander = findCommander(selectedCommanderId) || MCGG_COMMANDERS[0];
+  const activeCommander: Commander | undefined = selectedCommanderId 
+    ? findCommander(selectedCommanderId) 
+    : undefined;
+
+  if (loadingUser) {
+    return (
+      <div className="min-h-screen w-full bg-[#06080F] flex items-center justify-center font-mono text-xs text-amber-400">
+        Connecting streamer session...
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen w-full bg-[#06080F] text-slate-100 p-4 md:p-8 font-sans selection:bg-amber-500 selection:text-black">
@@ -456,10 +527,16 @@ const handleResetSession = async () => {
           </div>
 
           <div className="flex items-center gap-2.5">
+            {userEmail && (
+              <span className="hidden sm:inline-block text-[11px] font-mono text-amber-300 border border-amber-500/30 bg-[#060b18] px-2.5 py-1.5 rounded-lg font-bold">
+                @{userEmail}
+              </span>
+            )}
+
             <button
               onClick={() => setSoundEnabled(!soundEnabled)}
               title={soundEnabled ? "Mute SFX" : "Enable SFX"}
-              className="p-2 rounded-lg bg-[#070b16] border border-amber-500/20 text-slate-300 hover:text-amber-300 transition"
+              className="p-2 rounded-lg bg-[#070b16] border border-amber-500/20 text-slate-300 hover:text-amber-300 transition cursor-pointer"
             >
               {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4 text-slate-500" />}
             </button>
@@ -467,7 +544,7 @@ const handleResetSession = async () => {
             <button
               onClick={() => setShowQRModal(true)}
               title="Remote Mobile Deck"
-              className="p-2 rounded-lg bg-[#070b16] border border-amber-500/20 text-slate-300 hover:text-cyan-300 transition"
+              className="p-2 rounded-lg bg-[#070b16] border border-amber-500/20 text-slate-300 hover:text-cyan-300 transition cursor-pointer"
             >
               <QrCode className="w-4 h-4" />
             </button>
@@ -475,7 +552,7 @@ const handleResetSession = async () => {
             <div className="flex items-center gap-1.5 bg-[#050914] border border-amber-500/30 px-3 py-1.5 rounded-lg">
               <button
                 onClick={copyUrl}
-                className="flex items-center gap-1.5 text-xs font-bold text-amber-300 hover:text-white transition uppercase tracking-wider"
+                className="flex items-center gap-1.5 text-xs font-bold text-amber-300 hover:text-white transition uppercase tracking-wider cursor-pointer"
               >
                 {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                 {copied ? 'Copied' : 'Copy Overlay'}
@@ -490,10 +567,18 @@ const handleResetSession = async () => {
                 Preview <ExternalLink className="w-3 h-3" />
               </a>
             </div>
+
+            <button
+              onClick={handleSignOut}
+              title="Sign Out"
+              className="p-2 rounded-lg bg-rose-950/40 border border-rose-500/30 text-rose-300 hover:bg-rose-900/50 hover:text-white transition cursor-pointer"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </header>
 
-        {/* Main Grid: Left Column (Match Logger) & Right Column (Go-to & OBS Controls) */}
+        {/* Main Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           
           {/* LEFT COLUMN: Fast Match Logger */}
@@ -531,7 +616,7 @@ const handleResetSession = async () => {
                           setSelectedPlacement(num);
                           playFeedbackSound('click');
                         }}
-                        className={`h-11 rounded-lg font-black text-sm transition-all flex flex-col items-center justify-center border ${
+                        className={`h-11 rounded-lg font-black text-sm transition-all flex flex-col items-center justify-center border cursor-pointer ${
                           isSelected
                             ? isWin
                               ? 'bg-gradient-to-b from-amber-400 to-amber-600 text-slate-950 border-amber-300 shadow-[0_0_14px_rgba(251,191,36,0.5)] scale-105'
@@ -549,11 +634,11 @@ const handleResetSession = async () => {
                 </div>
               </div>
 
-              {/* Step 2: Commander Grid Selector */}
+              {/* Step 2: Commander Grid Selector (Alphabetical) */}
               <div>
                 <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
                   <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                    2. Select Commander ({filteredCommanders.length})
+                    2. Select Commander ({filteredCommanders.length}) {activeCommander ? `• Selected: ${activeCommander.name}` : '• (None Selected)'}
                   </label>
                   
                   {/* Category Pills & Search */}
@@ -564,7 +649,7 @@ const handleResetSession = async () => {
                           key={cat}
                           type="button"
                           onClick={() => setSelectedCategory(cat)}
-                          className={`px-2 py-0.5 rounded-md transition ${
+                          className={`px-2 py-0.5 rounded-md transition cursor-pointer ${
                             selectedCategory === cat
                               ? 'bg-amber-400 text-slate-950'
                               : 'text-slate-400 hover:text-white'
@@ -579,7 +664,7 @@ const handleResetSession = async () => {
                       <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2 top-2" />
                       <input
                         type="text"
-                        placeholder="Search..."
+                        placeholder="Search A-Z..."
                         value={matchSearch}
                         onChange={(e) => setMatchSearch(e.target.value)}
                         className="bg-[#050914] border border-amber-500/30 pl-7 pr-2.5 py-1 text-xs text-white placeholder-slate-600 rounded-lg outline-none w-28"
@@ -588,7 +673,7 @@ const handleResetSession = async () => {
                   </div>
                 </div>
 
-                {/* Commander Avatars Horizontal Grid */}
+                {/* Commander Avatars Alphabetical Grid */}
                 <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 max-h-56 overflow-y-auto p-1 bg-[#050914]/80 rounded-xl border border-slate-800/80">
                   {filteredCommanders.map((cmd) => {
                     const isSelected = selectedCommanderId === cmd.id;
@@ -600,7 +685,7 @@ const handleResetSession = async () => {
                           setSelectedCommanderId(cmd.id);
                           playFeedbackSound('click');
                         }}
-                        className={`p-1.5 rounded-lg border flex flex-col items-center gap-1.5 transition text-center ${
+                        className={`p-1.5 rounded-lg border flex flex-col items-center gap-1.5 transition text-center cursor-pointer ${
                           isSelected
                             ? 'bg-amber-500/20 border-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.3)]'
                             : 'bg-[#080e1c] border-slate-800 hover:border-slate-700'
@@ -626,7 +711,11 @@ const handleResetSession = async () => {
                 type="submit"
                 className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-600 text-slate-950 font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg hover:brightness-110 active:scale-[0.99] transition cursor-pointer"
               >
-                <PlusCircle className="w-4 h-4" /> Log Game: #{selectedPlacement} with {activeCommander.name}
+                <PlusCircle className="w-4 h-4" /> 
+                {activeCommander 
+                  ? `Log Game: #${selectedPlacement} with ${activeCommander.name}` 
+                  : `Select a Commander to Log (#${selectedPlacement})`
+                }
               </button>
             </form>
 
@@ -637,49 +726,59 @@ const handleResetSession = async () => {
               </span>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                
+                {/* Total Matches */}
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase font-bold text-slate-400">Total Matches</label>
                   <input
                     type="number"
-                    value={profile.total_matches}
-                    onChange={(e) => updateProfileInSupabase({ total_matches: Number(e.target.value) })}
+                    value={profile.total_matches === 0 ? '' : profile.total_matches}
+                    placeholder="0"
+                    onChange={(e) => handleNumericInput('total_matches', e.target.value)}
                     className="w-full bg-[#050914] border border-amber-500/30 px-3 py-1.5 text-white font-mono rounded-lg outline-none"
                   />
                 </div>
 
+                {/* Win Rate */}
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase font-bold text-slate-400">Win Rate (%)</label>
                   <input
                     type="number"
                     step="0.01"
-                    value={profile.season_win_rate}
-                    onChange={(e) => updateProfileInSupabase({ season_win_rate: Number(e.target.value) })}
+                    value={profile.season_win_rate === 0 ? '' : profile.season_win_rate}
+                    placeholder="0.00"
+                    onChange={(e) => handleNumericInput('season_win_rate', e.target.value)}
                     className="w-full bg-[#050914] border border-amber-500/30 px-3 py-1.5 text-emerald-400 font-mono font-bold rounded-lg outline-none"
                   />
                 </div>
 
+                {/* Champion Rate */}
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase font-bold text-slate-400">Champion Rate (%)</label>
                   <input
                     type="number"
                     step="0.01"
-                    value={profile.champion_rate}
-                    onChange={(e) => updateProfileInSupabase({ champion_rate: Number(e.target.value) })}
+                    value={profile.champion_rate === 0 ? '' : profile.champion_rate}
+                    placeholder="0.00"
+                    onChange={(e) => handleNumericInput('champion_rate', e.target.value)}
                     className="w-full bg-[#050914] border border-amber-500/30 px-3 py-1.5 text-amber-300 font-mono font-bold rounded-lg outline-none"
                   />
                 </div>
 
+                {/* Average Rank */}
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase font-bold text-slate-400">Average Rank</label>
                   <input
                     type="number"
                     step="0.01"
-                    value={profile.season_avg_rank}
-                    onChange={(e) => updateProfileInSupabase({ season_avg_rank: Number(e.target.value) })}
+                    value={profile.season_avg_rank === 0 ? '' : profile.season_avg_rank}
+                    placeholder="0.00"
+                    onChange={(e) => handleNumericInput('season_avg_rank', e.target.value)}
                     className="w-full bg-[#050914] border border-amber-500/30 px-3 py-1.5 text-cyan-300 font-mono font-bold rounded-lg outline-none"
                   />
                 </div>
 
+                {/* Current Tier */}
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase font-bold text-slate-400">Current Tier</label>
                   <select
@@ -687,64 +786,78 @@ const handleResetSession = async () => {
                     onChange={(e) => updateProfileInSupabase({ rank_tier: e.target.value })}
                     className="w-full bg-[#050914] border border-amber-500/30 px-3 py-1.5 text-white text-xs rounded-lg outline-none"
                   >
-                    <option value="Warrior">Warrior</option>
-                    <option value="Elite">Elite</option>
-                    <option value="Master">Master</option>
-                    <option value="Grandmaster">Grandmaster</option>
-                    <option value="Epic">Epic</option>
-                    <option value="Legend">Legend</option>
-                    <option value="Mythic">Mythic</option>
-                    <option value="Mythical Honor">Mythical Honor</option>
-                    <option value="Mythical Glory">Mythical Glory</option>
-                    <option value="Mythical Immortal">Mythical Immortal</option>
+                    {RANK_TIERS.map((tier) => (
+                      <option key={tier} value={tier}>{tier}</option>
+                    ))}
                   </select>
                 </div>
 
+                {/* Current Stars */}
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase font-bold text-slate-400">Current ⭐ Stars</label>
                   <input
                     type="number"
-                    value={profile.rank_points}
-                    onChange={(e) => updateProfileInSupabase({ rank_points: Number(e.target.value) })}
+                    value={profile.rank_points === 0 ? '' : profile.rank_points}
+                    placeholder="0"
+                    onChange={(e) => handleNumericInput('rank_points', e.target.value)}
                     className="w-full bg-[#050914] border border-amber-500/30 px-3 py-1.5 text-amber-300 font-mono font-bold rounded-lg outline-none"
                   />
                 </div>
 
+                {/* Historical Tier */}
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-bold text-slate-400">Historical Tier</label>
+                  <select
+                    value={profile.historical_tier}
+                    onChange={(e) => updateProfileInSupabase({ historical_tier: e.target.value })}
+                    className="w-full bg-[#050914] border border-amber-500/30 px-3 py-1.5 text-white text-xs rounded-lg outline-none"
+                  >
+                    {RANK_TIERS.map((tier) => (
+                      <option key={tier} value={tier}>{tier}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Historical Stars */}
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase font-bold text-slate-400">Historical Stars</label>
                   <input
                     type="number"
-                    value={profile.historical_stars}
-                    onChange={(e) => updateProfileInSupabase({ historical_stars: Number(e.target.value) })}
+                    value={profile.historical_stars === 0 ? '' : profile.historical_stars}
+                    placeholder="0"
+                    onChange={(e) => handleNumericInput('historical_stars', e.target.value)}
                     className="w-full bg-[#050914] border border-amber-500/30 px-3 py-1.5 text-amber-300 font-mono font-bold rounded-lg outline-none"
                   />
                 </div>
 
-                <div className="space-y-1">
+                {/* Session Stars Delta */}
+                <div className="space-y-1 col-span-2 sm:col-span-4">
                   <label className="text-[10px] uppercase font-bold text-slate-400">Session Stars Delta</label>
                   <div className="flex items-center gap-1">
                     <button
                       type="button"
                       onClick={() => updateProfileInSupabase({ star_delta: profile.star_delta - 1 })}
-                      className="bg-rose-950/80 border border-rose-800 text-rose-300 px-2 py-1 text-xs font-black rounded"
+                      className="bg-rose-950/80 border border-rose-800 text-rose-300 px-3 py-1 text-xs font-black rounded cursor-pointer"
                     >
                       -1
                     </button>
                     <input
                       type="number"
-                      value={profile.star_delta}
-                      onChange={(e) => updateProfileInSupabase({ star_delta: Number(e.target.value) })}
-                      className="w-12 text-center bg-[#050914] border border-amber-500/30 py-1 text-amber-300 font-mono text-xs rounded outline-none"
+                      value={profile.star_delta === 0 ? '' : profile.star_delta}
+                      placeholder="0"
+                      onChange={(e) => handleNumericInput('star_delta', e.target.value)}
+                      className="w-20 text-center bg-[#050914] border border-amber-500/30 py-1 text-amber-300 font-mono text-xs rounded outline-none"
                     />
                     <button
                       type="button"
                       onClick={() => updateProfileInSupabase({ star_delta: profile.star_delta + 1 })}
-                      className="bg-emerald-950/80 border border-emerald-800 text-emerald-300 px-2 py-1 text-xs font-black rounded"
+                      className="bg-emerald-950/80 border border-emerald-800 text-emerald-300 px-3 py-1 text-xs font-black rounded cursor-pointer"
                     >
                       +1
                     </button>
                   </div>
                 </div>
+
               </div>
             </div>
 
@@ -764,7 +877,7 @@ const handleResetSession = async () => {
                   type="button"
                   disabled={loadingAction === 'session'}
                   onClick={handleResetSession}
-                  className="px-3 py-1.5 text-xs font-bold text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded-lg hover:bg-amber-500/20 active:scale-95 transition"
+                  className="px-3 py-1.5 text-xs font-bold text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded-lg hover:bg-amber-500/20 active:scale-95 transition cursor-pointer"
                 >
                   Clear Session Matches
                 </button>
@@ -772,7 +885,7 @@ const handleResetSession = async () => {
                   type="button"
                   disabled={loadingAction === 'rank'}
                   onClick={handleResetRank}
-                  className="px-3 py-1.5 text-xs font-bold text-rose-300 bg-rose-500/10 border border-rose-500/30 rounded-lg hover:bg-rose-500/20 active:scale-95 transition"
+                  className="px-3 py-1.5 text-xs font-bold text-rose-300 bg-rose-500/10 border border-rose-500/30 rounded-lg hover:bg-rose-500/20 active:scale-95 transition cursor-pointer"
                 >
                   Reset Season Baseline
                 </button>
@@ -794,7 +907,7 @@ const handleResetSession = async () => {
                   <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2 top-2" />
                   <input
                     type="text"
-                    placeholder="Search..."
+                    placeholder="Search A-Z..."
                     value={gotoSearch}
                     onChange={(e) => setGotoSearch(e.target.value)}
                     className="bg-[#050914] border border-amber-500/30 pl-7 pr-2 py-1 text-xs text-white placeholder-slate-600 rounded-lg outline-none w-28"
@@ -802,7 +915,7 @@ const handleResetSession = async () => {
                 </div>
               </div>
 
-              {/* Selected 3 Preview Badges (Type-safe cmd lookup) */}
+              {/* Selected 3 Preview Badges */}
               <div className="grid grid-cols-3 gap-2 p-2 bg-[#050914] border border-amber-500/20 rounded-lg">
                 {[0, 1, 2].map((slotIdx) => {
                   const cmdId = profile.top_commanders?.[slotIdx];
@@ -834,7 +947,7 @@ const handleResetSession = async () => {
                 })}
               </div>
 
-              {/* Roster Pick Grid */}
+              {/* Roster Pick Grid (Alphabetical) */}
               <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 max-h-40 overflow-y-auto p-1 bg-[#050914]/80 rounded-xl border border-slate-800">
                 {gotoFilteredCommanders.map((cmd) => {
                   const isSelected = (profile.top_commanders || []).includes(cmd.id);
@@ -843,7 +956,7 @@ const handleResetSession = async () => {
                       type="button"
                       key={cmd.id}
                       onClick={() => toggleTopCommander(cmd.id)}
-                      className={`p-1.5 rounded-lg border flex flex-col items-center gap-1 transition ${
+                      className={`p-1.5 rounded-lg border flex flex-col items-center gap-1 transition cursor-pointer ${
                         isSelected 
                           ? 'bg-amber-500/20 border-amber-400 shadow-sm' 
                           : 'bg-[#080e1c] border-slate-800 hover:border-slate-700'
@@ -896,7 +1009,7 @@ const handleResetSession = async () => {
                           type="button"
                           disabled={index === 0}
                           onClick={() => moveWidget(index, 'left')}
-                          className="p-1 rounded bg-[#070b16] border border-slate-700 disabled:opacity-30 hover:border-amber-400 text-slate-300 transition"
+                          className="p-1 rounded bg-[#070b16] border border-slate-700 disabled:opacity-30 hover:border-amber-400 text-slate-300 transition cursor-pointer"
                         >
                           <ArrowLeft className="w-3 h-3" />
                         </button>
@@ -904,7 +1017,7 @@ const handleResetSession = async () => {
                           type="button"
                           disabled={index === profile.widget_order.length - 1}
                           onClick={() => moveWidget(index, 'right')}
-                          className="p-1 rounded bg-[#070b16] border border-slate-700 disabled:opacity-30 hover:border-amber-400 text-slate-300 transition"
+                          className="p-1 rounded bg-[#070b16] border border-slate-700 disabled:opacity-30 hover:border-amber-400 text-slate-300 transition cursor-pointer"
                         >
                           <ArrowRight className="w-3 h-3" />
                         </button>
