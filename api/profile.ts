@@ -1,6 +1,12 @@
 /// <reference types="node" />
 import { neon } from '@neondatabase/serverless';
 
+function toPgArray(arr: unknown): string {
+  if (!Array.isArray(arr) || arr.length === 0) return '{}';
+  const escaped = arr.map((item) => `"${String(item).replace(/"/g, '\\"')}"`);
+  return `{${escaped.join(',')}}`;
+}
+
 export default async function handler(req: any, res: any) {
   const sql = neon(process.env.DATABASE_URL!);
   const streamerId = (req.query.streamerId || req.body?.streamer_id || 'default_streamer') as string;
@@ -17,6 +23,9 @@ export default async function handler(req: any, res: any) {
 
     if (req.method === 'POST') {
       const p = req.body;
+      const topCommandersPg = toPgArray(p.top_commanders);
+      const widgetOrderPg = toPgArray(p.widget_order);
+
       const rows = await sql`
         INSERT INTO streamer_profiles (
           streamer_id, rank_tier, rank_division, rank_points,
@@ -27,8 +36,8 @@ export default async function handler(req: any, res: any) {
           ${streamerId}, ${p.rank_tier}, ${p.rank_division || ''}, ${p.rank_points},
           ${p.historical_tier}, ${p.historical_stars}, ${p.total_matches},
           ${p.season_win_rate}, ${p.champion_rate}, ${p.season_avg_rank},
-          ${p.star_delta}, ${p.top_commanders}::text[],
-          ${JSON.stringify(p.enabled_widgets)}::jsonb, ${p.widget_order}::text[], now()
+          ${p.star_delta}, ${topCommandersPg}::text[],
+          ${JSON.stringify(p.enabled_widgets)}::jsonb, ${widgetOrderPg}::text[], now()
         )
         ON CONFLICT (streamer_id) DO UPDATE SET
           rank_tier = EXCLUDED.rank_tier,
