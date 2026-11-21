@@ -10,7 +10,6 @@ import {
   Flame 
 } from 'lucide-react';
 import { MCGG_COMMANDERS, findCommander, type Commander } from '../data/commanders';
-import { supabase } from '../supabase';
 
 interface MatchRecord {
   id: string;
@@ -147,7 +146,7 @@ function parseJSONField<T>(field: unknown, fallback: T): T {
 
 export default function Overlay() {
   const params = useParams();
-  
+
   // Resolve streamerId either from React Router params or directly from pathname (/overlay/:id)
   const resolvedStreamerId = useMemo(() => {
     if (params?.streamerId) return params.streamerId;
@@ -165,18 +164,16 @@ export default function Overlay() {
   const loadMatches = useCallback(async () => {
     if (!resolvedStreamerId) return;
     try {
-      const { data: matchData, error } = await supabase
-        .from('stream_matches')
-        .select('*')
-        .eq('streamer_id', resolvedStreamerId)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('[Overlay] Error loading matches:', error);
+      const response = await fetch(
+        `/api/matches?streamerId=${encodeURIComponent(resolvedStreamerId)}`
+      );
+      if (!response.ok) {
+        console.error('[Overlay] Error loading matches:', response.statusText);
         return;
       }
 
-      if (matchData) {
+      const matchData = await response.json();
+      if (Array.isArray(matchData)) {
         setAllSessionMatches(
           matchData.map((m) => ({
             id: String(m.id),
@@ -195,17 +192,15 @@ export default function Overlay() {
   const loadProfile = useCallback(async () => {
     if (!resolvedStreamerId) return;
     try {
-      const { data: profileData, error } = await supabase
-        .from('streamer_profiles')
-        .select('*')
-        .eq('streamer_id', resolvedStreamerId)
-        .maybeSingle();
-
-      if (error) {
-        console.warn('[Overlay] Error loading profile:', error.message);
+      const response = await fetch(
+        `/api/profile?streamerId=${encodeURIComponent(resolvedStreamerId)}`
+      );
+      if (!response.ok) {
+        console.warn('[Overlay] Error loading profile:', response.statusText);
         return;
       }
 
+      const profileData = await response.json();
       if (profileData) {
         const parsedWidgets = parseJSONField<Record<string, boolean>>(
           profileData.enabled_widgets,
@@ -224,15 +219,39 @@ export default function Overlay() {
           ...prev,
           rank_tier: profileData.rank_tier || prev.rank_tier,
           rank_division: profileData.rank_division || '',
-          rank_points: profileData.rank_points != null ? Number(profileData.rank_points) : prev.rank_points,
+          rank_points:
+            profileData.rank_points != null
+              ? Number(profileData.rank_points)
+              : prev.rank_points,
           historical_tier: profileData.historical_tier || prev.historical_tier,
-          historical_stars: profileData.historical_stars != null ? Number(profileData.historical_stars) : prev.historical_stars,
-          total_matches: profileData.total_matches != null ? Number(profileData.total_matches) : prev.total_matches,
-          season_win_rate: profileData.season_win_rate != null ? Number(profileData.season_win_rate) : prev.season_win_rate,
-          champion_rate: profileData.champion_rate != null ? Number(profileData.champion_rate) : prev.champion_rate,
-          season_avg_rank: profileData.season_avg_rank != null ? Number(profileData.season_avg_rank) : prev.season_avg_rank,
-          star_delta: profileData.star_delta != null ? Number(profileData.star_delta) : prev.star_delta,
-          top_commanders: parsedCommanders && parsedCommanders.length > 0 ? parsedCommanders : prev.top_commanders,
+          historical_stars:
+            profileData.historical_stars != null
+              ? Number(profileData.historical_stars)
+              : prev.historical_stars,
+          total_matches:
+            profileData.total_matches != null
+              ? Number(profileData.total_matches)
+              : prev.total_matches,
+          season_win_rate:
+            profileData.season_win_rate != null
+              ? Number(profileData.season_win_rate)
+              : prev.season_win_rate,
+          champion_rate:
+            profileData.champion_rate != null
+              ? Number(profileData.champion_rate)
+              : prev.champion_rate,
+          season_avg_rank:
+            profileData.season_avg_rank != null
+              ? Number(profileData.season_avg_rank)
+              : prev.season_avg_rank,
+          star_delta:
+            profileData.star_delta != null
+              ? Number(profileData.star_delta)
+              : prev.star_delta,
+          top_commanders:
+            parsedCommanders && parsedCommanders.length > 0
+              ? parsedCommanders
+              : prev.top_commanders,
           enabled_widgets: parsedWidgets,
           widget_order: parsedOrder,
         }));
@@ -246,78 +265,16 @@ export default function Overlay() {
     loadMatches();
     loadProfile();
 
-    // Sanitize channel name for safe Supabase broadcast
-    const sanitizedId = resolvedStreamerId.replace(/[^a-zA-Z0-9_-]/g, '_');
-    const channel = supabase
-      .channel(`overlay_streamer_${sanitizedId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'streamer_profiles',
-          filter: `streamer_id=eq.${resolvedStreamerId}`,
-        },
-        (payload) => {
-          if (payload.new && typeof payload.new === 'object') {
-            const raw = payload.new as Record<string, unknown>;
-            const newWidgets = parseJSONField<Record<string, boolean>>(
-              raw.enabled_widgets,
-              profile.enabled_widgets
-            );
-            const newOrder = parseJSONField<string[]>(
-              raw.widget_order,
-              profile.widget_order
-            );
-            const newTopCmds = parseJSONField<string[]>(
-              raw.top_commanders,
-              profile.top_commanders
-            );
-
-            setProfile((prev) => ({
-              ...prev,
-              rank_tier: (raw.rank_tier as string) ?? prev.rank_tier,
-              rank_division: (raw.rank_division as string) ?? prev.rank_division,
-              rank_points: raw.rank_points != null ? Number(raw.rank_points) : prev.rank_points,
-              historical_tier: (raw.historical_tier as string) ?? prev.historical_tier,
-              historical_stars: raw.historical_stars != null ? Number(raw.historical_stars) : prev.historical_stars,
-              total_matches: raw.total_matches != null ? Number(raw.total_matches) : prev.total_matches,
-              season_win_rate: raw.season_win_rate != null ? Number(raw.season_win_rate) : prev.season_win_rate,
-              champion_rate: raw.champion_rate != null ? Number(raw.champion_rate) : prev.champion_rate,
-              season_avg_rank: raw.season_avg_rank != null ? Number(raw.season_avg_rank) : prev.season_avg_rank,
-              star_delta: raw.star_delta != null ? Number(raw.star_delta) : prev.star_delta,
-              top_commanders: newTopCmds || prev.top_commanders,
-              enabled_widgets: newWidgets,
-              widget_order: newOrder,
-            }));
-          } else {
-            loadProfile();
-          }
-          loadMatches();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'stream_matches',
-          filter: `streamer_id=eq.${resolvedStreamerId}`,
-        },
-        () => {
-          loadMatches();
-        }
-      )
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          console.log('[Overlay] Realtime synchronized for:', resolvedStreamerId);
-        }
-      });
+    // Poll Neon API every 2 seconds for live stream updates
+    const interval = setInterval(() => {
+      loadMatches();
+      loadProfile();
+    }, 2000);
 
     return () => {
-      supabase.removeChannel(channel);
+      clearInterval(interval);
     };
-  }, [resolvedStreamerId, loadMatches, loadProfile]);
+  }, [loadMatches, loadProfile]);
 
   const top4Count = allSessionMatches.filter((m) => m.placement <= 4).length;
   const bottom4Count = allSessionMatches.length - top4Count;

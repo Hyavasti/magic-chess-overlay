@@ -16,11 +16,10 @@ import {
   VolumeX,
   Trophy,
   QrCode,
-  LogOut,
+  User,
   X
 } from 'lucide-react';
 import { MCGG_COMMANDERS, findCommander, type Commander } from '../data/commanders';
-import { supabase } from '../supabase';
 
 interface ProfileState {
   rank_tier: string;
@@ -79,13 +78,13 @@ function parseJSONField<T>(field: unknown, fallback: T): T {
 }
 
 export default function Dashboard() {
-  const [streamerId, setStreamerId] = useState<string | null>(null);
-  const [userEmail, setUserEmail] = useState<string>('');
-  const [loadingUser, setLoadingUser] = useState<boolean>(true);
+  const [streamerId, setStreamerId] = useState<string>(() => {
+    return localStorage.getItem('mcgg_streamer_id') || 'default_streamer';
+  });
+  const [streamerInput, setStreamerInput] = useState<string>(streamerId);
+  const [loadingProfile, setLoadingProfile] = useState<boolean>(true);
 
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'Hero' | 'Classic'>('all');
-  
-  // No default commander selected
   const [selectedCommanderId, setSelectedCommanderId] = useState<string | null>(null);
   const [selectedPlacement, setSelectedPlacement] = useState<number>(1);
   const [copied, setCopied] = useState<boolean>(false);
@@ -174,34 +173,19 @@ export default function Dashboard() {
     }
   };
 
-  // Load user session and corresponding isolated profile
+  // Load streamer profile from Neon API
   useEffect(() => {
-    async function initUserAndLoadRank() {
+    async function loadProfileFromNeon() {
+      setLoadingProfile(true);
       try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError || !session?.user) {
-          setLoadingUser(false);
+        const response = await fetch(`/api/profile?streamerId=${encodeURIComponent(streamerId)}`);
+        if (!response.ok) {
+          console.error('[Dashboard] Error fetching profile:', response.statusText);
+          setLoadingProfile(false);
           return;
         }
 
-        // Clean username extraction
-        const rawEmail = session.user.email || '';
-        const parsedUsername = rawEmail.split('@')[0] || session.user.id;
-
-        setUserEmail(parsedUsername);
-        setStreamerId(parsedUsername);
-
-        // Fetch profile using clean username
-        const { data, error } = await supabase
-          .from('streamer_profiles')
-          .select('*')
-          .eq('streamer_id', parsedUsername)
-          .maybeSingle();
-
-        if (error) {
-          console.error('[Dashboard] Error fetching profile:', error);
-        }
+        const data = await response.json();
 
         if (data) {
           const parsedWidgets = parseJSONField<Record<string, boolean>>(
@@ -237,14 +221,25 @@ export default function Dashboard() {
           }));
         }
       } catch (err) {
-        console.error('[Dashboard] Network error during initialization:', err);
+        console.error('[Dashboard] Network error loading profile:', err);
       } finally {
-        setLoadingUser(false);
+        setLoadingProfile(false);
       }
     }
 
-    initUserAndLoadRank();
-  }, []);
+    loadProfileFromNeon();
+  }, [streamerId]);
+
+  const handleSwitchProfile = (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleaned = streamerInput.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '_');
+    if (!cleaned) return;
+    localStorage.setItem('mcgg_streamer_id', cleaned);
+    setStreamerId(cleaned);
+    setStreamerInput(cleaned);
+    playFeedbackSound('click');
+    showToast(`Switched profile to @${cleaned}`);
+  };
 
   const overlayUrl = streamerId ? `${window.location.origin}/overlay/${streamerId}` : '';
 
@@ -257,7 +252,7 @@ export default function Dashboard() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const updateProfileInSupabase = useCallback(async (updated: Partial<ProfileState>) => {
+  const saveProfileToNeon = useCallback(async (updated: Partial<ProfileState>) => {
     if (!streamerId) return;
 
     const next: ProfileState = { ...profile, ...updated };
@@ -278,17 +273,19 @@ export default function Dashboard() {
       top_commanders: next.top_commanders,
       enabled_widgets: next.enabled_widgets,
       widget_order: next.widget_order,
-      updated_at: new Date().toISOString(),
     };
 
     try {
-      const { error } = await supabase
-        .from('streamer_profiles')
-        .upsert(payloadToSave, { onConflict: 'streamer_id' });
+      const response = await fetch('/api/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payloadToSave),
+      });
 
-      if (error) {
-        console.error('[Dashboard] Supabase save error:', error.message);
-        showToast(`Save Error: ${error.message}`, 'error');
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        console.error('[Dashboard] Neon save error:', errData);
+        showToast(`Save Error: ${errData.error || response.statusText}`, 'error');
       }
     } catch (err) {
       console.error('[Dashboard] Exception saving profile:', err);
@@ -296,13 +293,12 @@ export default function Dashboard() {
     }
   }, [streamerId, profile]);
 
-  // Helper for number inputs so typing replaces 0 cleanly
   const handleNumericInput = (field: keyof ProfileState, rawValue: string) => {
     if (rawValue === '') {
-      updateProfileInSupabase({ [field]: 0 });
+      saveProfileToNeon({ [field]: 0 });
     } else {
       const val = parseFloat(rawValue);
-      updateProfileInSupabase({ [field]: isNaN(val) ? 0 : val });
+      saveProfileToNeon({ [field]: isNaN(val) ? 0 : val });
     }
   };
 
@@ -312,7 +308,7 @@ export default function Dashboard() {
       ...profile.enabled_widgets,
       [key]: !profile.enabled_widgets[key],
     };
-    updateProfileInSupabase({ enabled_widgets: nextWidgets });
+    saveProfileToNeon({ enabled_widgets: nextWidgets });
   };
 
   const moveWidget = (index: number, direction: 'left' | 'right') => {
@@ -325,7 +321,7 @@ export default function Dashboard() {
     newOrder[index] = newOrder[targetIndex];
     newOrder[targetIndex] = temp;
 
-    updateProfileInSupabase({ widget_order: newOrder });
+    saveProfileToNeon({ widget_order: newOrder });
   };
 
   const toggleTopCommander = (cmdId: string) => {
@@ -339,7 +335,7 @@ export default function Dashboard() {
       }
       current.push(cmdId);
     }
-    updateProfileInSupabase({ top_commanders: current });
+    saveProfileToNeon({ top_commanders: current });
   };
 
   const handleAddMatch = async (e: React.FormEvent) => {
@@ -358,17 +354,25 @@ export default function Dashboard() {
     playFeedbackSound(isTop4 ? 'win' : 'lose');
 
     try {
-      await supabase.from('stream_matches').insert({
-        streamer_id: streamerId,
-        placement: selectedPlacement,
-        commander_id: cmd.id,
+      const response = await fetch('/api/matches', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          streamer_id: streamerId,
+          placement: selectedPlacement,
+          commander_id: cmd.id,
+        }),
       });
+
+      if (!response.ok) {
+        throw new Error('Failed to insert match');
+      }
 
       const starChange = STAR_MAP[selectedPlacement] || 0;
       const newTotalStars = Math.max(0, profile.rank_points + starChange);
       const newSessionDelta = profile.star_delta + starChange;
 
-      await updateProfileInSupabase({
+      await saveProfileToNeon({
         rank_points: newTotalStars,
         star_delta: newSessionDelta,
       });
@@ -389,12 +393,11 @@ export default function Dashboard() {
 
     setLoadingAction('session');
     try {
-      await supabase
-        .from('stream_matches')
-        .delete()
-        .eq('streamer_id', streamerId);
+      await fetch(`/api/matches?streamerId=${encodeURIComponent(streamerId)}`, {
+        method: 'DELETE',
+      });
 
-      await updateProfileInSupabase({
+      await saveProfileToNeon({
         star_delta: 0,
       });
 
@@ -414,7 +417,7 @@ export default function Dashboard() {
 
     setLoadingAction('rank');
     try {
-      await updateProfileInSupabase({
+      await saveProfileToNeon({
         rank_tier: 'Warrior',
         rank_division: 'III',
         rank_points: 0,
@@ -427,10 +430,6 @@ export default function Dashboard() {
     } finally {
       setLoadingAction(null);
     }
-  };
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
   };
 
   // Alphabetically sorted commanders
@@ -454,10 +453,10 @@ export default function Dashboard() {
     ? findCommander(selectedCommanderId) 
     : undefined;
 
-  if (loadingUser) {
+  if (loadingProfile) {
     return (
       <div className="min-h-screen w-full bg-[#06080F] flex items-center justify-center font-mono text-xs text-amber-400">
-        Connecting streamer session...
+        Connecting to Neon Database...
       </div>
     );
   }
@@ -526,12 +525,24 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5">
-            {userEmail && (
-              <span className="hidden sm:inline-block text-[11px] font-mono text-amber-300 border border-amber-500/30 bg-[#060b18] px-2.5 py-1.5 rounded-lg font-bold">
-                @{userEmail}
-              </span>
-            )}
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* Streamer Profile Switcher */}
+            <form onSubmit={handleSwitchProfile} className="flex items-center gap-1 bg-[#060b18] border border-amber-500/30 px-2 py-1 rounded-lg">
+              <User className="w-3.5 h-3.5 text-amber-400" />
+              <input
+                type="text"
+                value={streamerInput}
+                onChange={(e) => setStreamerInput(e.target.value)}
+                placeholder="streamer_id"
+                className="bg-transparent text-xs font-mono text-amber-300 font-bold outline-none w-28"
+              />
+              <button
+                type="submit"
+                className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 transition cursor-pointer"
+              >
+                Load
+              </button>
+            </form>
 
             <button
               onClick={() => setSoundEnabled(!soundEnabled)}
@@ -567,14 +578,6 @@ export default function Dashboard() {
                 Preview <ExternalLink className="w-3 h-3" />
               </a>
             </div>
-
-            <button
-              onClick={handleSignOut}
-              title="Sign Out"
-              className="p-2 rounded-lg bg-rose-950/40 border border-rose-500/30 text-rose-300 hover:bg-rose-900/50 hover:text-white transition cursor-pointer"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
           </div>
         </header>
 
@@ -783,7 +786,7 @@ export default function Dashboard() {
                   <label className="text-[10px] uppercase font-bold text-slate-400">Current Tier</label>
                   <select
                     value={profile.rank_tier}
-                    onChange={(e) => updateProfileInSupabase({ rank_tier: e.target.value })}
+                    onChange={(e) => saveProfileToNeon({ rank_tier: e.target.value })}
                     className="w-full bg-[#050914] border border-amber-500/30 px-3 py-1.5 text-white text-xs rounded-lg outline-none"
                   >
                     {RANK_TIERS.map((tier) => (
@@ -809,7 +812,7 @@ export default function Dashboard() {
                   <label className="text-[10px] uppercase font-bold text-slate-400">Historical Tier</label>
                   <select
                     value={profile.historical_tier}
-                    onChange={(e) => updateProfileInSupabase({ historical_tier: e.target.value })}
+                    onChange={(e) => saveProfileToNeon({ historical_tier: e.target.value })}
                     className="w-full bg-[#050914] border border-amber-500/30 px-3 py-1.5 text-white text-xs rounded-lg outline-none"
                   >
                     {RANK_TIERS.map((tier) => (
@@ -836,7 +839,7 @@ export default function Dashboard() {
                   <div className="flex items-center gap-1">
                     <button
                       type="button"
-                      onClick={() => updateProfileInSupabase({ star_delta: profile.star_delta - 1 })}
+                      onClick={() => saveProfileToNeon({ star_delta: profile.star_delta - 1 })}
                       className="bg-rose-950/80 border border-rose-800 text-rose-300 px-3 py-1 text-xs font-black rounded cursor-pointer"
                     >
                       -1
@@ -850,7 +853,7 @@ export default function Dashboard() {
                     />
                     <button
                       type="button"
-                      onClick={() => updateProfileInSupabase({ star_delta: profile.star_delta + 1 })}
+                      onClick={() => saveProfileToNeon({ star_delta: profile.star_delta + 1 })}
                       className="bg-emerald-950/80 border border-emerald-800 text-emerald-300 px-3 py-1 text-xs font-black rounded cursor-pointer"
                     >
                       +1
